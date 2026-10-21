@@ -1,7 +1,12 @@
 import { neon } from "@neondatabase/serverless";
 import { verifyToken, createClerkClient } from "@clerk/backend";
 
-const DB_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+// Neon's Vercel integration prefixes its variables (here "availPoll_"); plain names work too.
+const DB_URL =
+  process.env.DATABASE_URL ||
+  process.env.availPoll_DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.availPoll_POSTGRES_URL;
 export const sql = DB_URL ? neon(DB_URL) : null;
 
 const clerk = process.env.CLERK_SECRET_KEY

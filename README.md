@@ -18,7 +18,7 @@ Each signed-in person has one row, keyed by their Clerk user id, so people can o
 
 | Name | Where to get it |
 |---|---|
-| `DATABASE_URL` | Neon → project → Connect → pooled connection string |
+| `DATABASE_URL` (or `availPoll_DATABASE_URL`) | Added automatically by the Neon integration in Vercel |
 | `CLERK_PUBLISHABLE_KEY` | Clerk → API keys (`pk_...`) |
 | `CLERK_SECRET_KEY` | Clerk → API keys (`sk_...`) |
 
