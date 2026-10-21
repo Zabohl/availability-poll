@@ -1,0 +1,10 @@
+{
+  "name": "availability-poll",
+  "scripts": {},
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@clerk/backend": "^3.25.0",
+    "@neondatabase/serverless": "^1.2.0"
+  }
+}

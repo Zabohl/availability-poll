@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Group Availability</title>
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+[hidden]{display:none!important}
+:root{--bg:#f5f4ef;--fg:#1c1f23;--muted:#666b73;--line:#d9d6cc;--card:#ffffff;--accent:#1f4d3a;--open:#2e7d4f;--partial:#b7791f;--tent:#2d6aa8;--na:#c2413b;--none:#cfccc3;--focus:#1f4d3a;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--accent:#86c9a6;--open:#5cb882;--partial:#e3ac4f;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--accent:#86c9a6;--open:#5cb882;--partial:#e3ac4f;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);padding-block:18px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:15px;line-height:1.45}
+#app{max-width:1480px;margin:0 auto;min-width:0}
+#app>h1,#app>.sub,#app>.tabs,#app>.legend,#app>.card{max-width:720px}
+.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;align-items:stretch}
+.months>.card{margin-bottom:0}
+h1{font-size:22px;margin:0 0 4px;text-wrap:balance;font-weight:650}
+h2{font-size:16px;margin:0 0 10px;font-weight:600}
+.sub{color:var(--muted);margin:0 0 14px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:38px;cursor:pointer}
+button[disabled]{opacity:.5;cursor:default}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:38px;width:100%;box-sizing:border-box;min-width:0}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;min-width:0}
+.field{display:grid;gap:4px;margin:8px 0 0}
+.lbl{font-size:12px;color:var(--muted)}
+.msg{color:var(--muted);font-size:13px;margin:6px 0 0}
+.err{color:#c0392b}
+.wl{font-weight:600}
+.save{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
+.people span{display:inline-block;margin:0 6px 6px 0;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px}
+.ovw{border-top:1px solid var(--line);padding:10px 0;display:grid;gap:6px;min-width:0}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--none)}
+.bar i{display:block;height:100%}
+.s-open{background:var(--open)}
+.s-partial{background:repeating-linear-gradient(90deg,var(--open) 0 5px,var(--na) 5px 10px)}
+.s-tentative{background:repeating-linear-gradient(45deg,var(--tent) 0 3px,color-mix(in srgb,var(--tent) 30%,var(--card)) 3px 6px)}
+.s-na{background:var(--na)}
+.s-none{background:var(--none)}
+.counts{font-size:12px;color:var(--muted)}
+.notes{margin:0;padding-left:18px;font-size:13px}
+.free{font-size:12px;color:var(--fg)}
+.free b{font-weight:600}
+.tag{font-size:12px;color:var(--open);font-weight:600;margin-left:6px}
+
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin:0 0 12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.legend i.st-open{background:var(--open)}
+.legend i.st-partial{background:linear-gradient(135deg,var(--open) 50%,var(--na) 50%)}
+.legend i.st-tentative{background:repeating-linear-gradient(45deg,var(--tent) 0 3px,color-mix(in srgb,var(--tent) 25%,var(--card)) 3px 6px)}
+.legend i.st-na{background:var(--na)}
+.legend i.st-none{background:var(--none)}
+.mhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mhead h2{margin:0;line-height:32px}
+.mset{display:flex;align-items:center;gap:8px;margin:0}
+.mset .lbl{white-space:nowrap}
+.mset select{width:auto;min-width:140px}
+.mdetail{display:grid;gap:4px;margin:0 0 12px}
+select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 8px;min-height:32px;width:100%;box-sizing:border-box;min-width:0}
+select:disabled{opacity:.45;cursor:not-allowed}
+.cal{display:grid;grid-template-columns:52px minmax(96px,128px) repeat(7,minmax(0,1fr));gap:6px 4px;align-items:start}
+.cal .hd{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:center;line-height:16px}
+.cal .hd.l{text-align:left}
+.wk{font-size:13px;font-weight:600;line-height:32px;white-space:nowrap}
+.ws select{font-size:13px}
+.d{height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;border:1px solid var(--line);background:var(--card);font-variant-numeric:tabular-nums;box-sizing:border-box}
+.d.out{opacity:.35}
+.d.st-none{background:color-mix(in srgb,var(--none) 60%,var(--card));border-color:var(--none)}
+.d.st-open{background:color-mix(in srgb,var(--open) 35%,var(--card));border-color:color-mix(in srgb,var(--open) 60%,var(--card))}
+.d.st-tentative{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tent) 45%,var(--card)) 0 4px,color-mix(in srgb,var(--tent) 12%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--tent) 60%,var(--card))}
+.d.st-na{background:color-mix(in srgb,var(--na) 35%,var(--card));border-color:color-mix(in srgb,var(--na) 60%,var(--card))}
+.d.st-partial{background:color-mix(in srgb,var(--na) 30%,var(--card));border:1.5px dashed var(--na)}
+.d.st-partial.pk{background:color-mix(in srgb,var(--open) 38%,var(--card));border:1.5px dashed var(--open);font-weight:600}
+.cal button.d{min-height:0;padding:0;font-size:11px;cursor:pointer;color:var(--fg)}
+.cal button.d.tap{height:36px}
+.cal button.d:hover{border-style:solid}
+.hint{grid-column:3 / -1;font-size:11px;color:var(--muted);margin-top:-4px}
+.tdate{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.tdate input{width:auto;min-width:0;max-width:170px;min-height:32px;padding:4px 8px;font-size:13px}
+.tdate .lbl{font-size:12px}
+.hd .sm{display:none}
+@media (max-width:520px){.hd .lg{display:none}.hd .sm{display:inline}}
+.wdetail{grid-column:2 / -1;display:grid;gap:4px;margin-top:-2px}
+.wdetail input{min-height:32px;padding:4px 8px;font-size:13px}
+.who{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+button.link{background:none;border:none;padding:0;min-height:0;color:var(--accent);text-decoration:underline;font-size:13px}
+.people span.me{border-color:var(--accent);font-weight:600}
+#auth{display:flex;justify-content:center;padding-block:8px 24px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="auth" hidden></div>
+<script>
+(function () {
+  "use strict";
+  var CFG = { start: [2026, 10, 1], months: 5, title: "Group availability" };
+  var STATUS = [["open", "Free"], ["partial", "Set days"], ["tentative", "Not Sure Yet"], ["na", "Busy"]];
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  var ST_CLS = { open: "st-open", partial: "st-partial", tentative: "st-tentative", na: "st-na" };
+  var DAY = 864e5;
+
+  function p2(n) { return (n < 10 ? "0" : "") + n; }
+  function d2s(t) { var d = new Date(t); return d.getUTCFullYear() + "-" + p2(d.getUTCMonth() + 1) + "-" + p2(d.getUTCDate()); }
+  function ts(key) { var p = key.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function fmtRange(t) {
+    var a = new Date(t), b = new Date(t + 6 * DAY);
+    return MON[a.getUTCMonth()] + " " + a.getUTCDate() + " – " + (a.getUTCMonth() === b.getUTCMonth() ? "" : MON[b.getUTCMonth()] + " ") + b.getUTCDate();
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    var p = iso.split("-");
+    return MON[+p[1] - 1] + " " + (+p[2]) + ", " + p[0];
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function nk(n) { return String(n || "").trim().toLowerCase(); }
+  function clone(o) { return JSON.parse(JSON.stringify(o || {})); }
+  function cleanDays(a) {
+    var out = [];
+    (a || []).forEach(function (i) { i = +i; if (i >= 0 && i < 7 && out.indexOf(i) < 0) out.push(i); });
+    return out.sort();
+  }
+
+  // Weeks (Mon-Sun) grouped by the month their Thursday falls in
+  var CAL = (function () {
+    var s = Date.UTC(CFG.start[0], CFG.start[1], CFG.start[2]);
+    var e = Date.UTC(CFG.start[0], CFG.start[1] + CFG.months, 1);
+    var dow = (new Date(s).getUTCDay() + 6) % 7;
+    var months = [], byKey = {};
+    for (var t = s - dow * DAY; t < e; t += 7 * DAY) {
+      var thu = t + 3 * DAY;
+      if (thu < s || thu >= e) continue;
+      var td = new Date(thu);
+      var mk = td.getUTCFullYear() + "-" + p2(td.getUTCMonth() + 1);
+      if (!byKey[mk]) {
+        byKey[mk] = { key: mk, label: MON[td.getUTCMonth()] + " " + td.getUTCFullYear(), weeks: [] };
+        months.push(byKey[mk]);
+      }
+      byKey[mk].weeks.push({ key: d2s(t), label: fmtRange(t) });
+    }
+    return months;
+  })();
+  var WEEKS = [];
+  CAL.forEach(function (m) { m.weeks.forEach(function (w) { WEEKS.push(w); }); });
+  var TITLE_RANGE = CAL[0].label + " to " + CAL[CAL.length - 1].label;
+  function findWeek(k) { for (var i = 0; i < WEEKS.length; i++) if (WEEKS[i].key === k) return WEEKS[i]; return null; }
+  function weekLabel(k) { var w = findWeek(k); return w ? "the week of " + w.label : k; }
+  function monthLabelOf(mk) { for (var i = 0; i < CAL.length; i++) if (CAL[i].key === mk) return CAL[i].label; return mk; }
+  function dayName(wk, i) { var d = new Date(ts(wk) + i * DAY); return DOW[i] + " " + (d.getUTCMonth() + 1) + "/" + d.getUTCDate(); }
+
+  var STATE = { responses: [] };
+
+  var store = {
+    get: function (k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } },
+    set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+  };
+  var view = store.get("av-view") === "overview" ? "overview" : "respond";
+  // draft.weeks[weekKey] = {s, date, days:[0-6]}
+  // draft.months[monthKey] = {s, date, days:{weekKey:[0-6]}}  (fills that month's weeks until a week is changed)
+  var draft = { name: "", weeks: {}, months: {} };
+  var phase = "loading", phaseMsg = "", myEmail = "";
+  var msg = "", msgErr = false, saving = false;
+  var app = document.getElementById("app");
+  var authBox = document.getElementById("auth");
+
+  function loadMine(rec) {
+    draft.weeks = clone(rec && rec.weeks);
+    draft.months = clone(rec && rec.months);
+    CAL.forEach(function (m) {
+      var mm = draft.months[m.key];
+      if (mm && mm.s) m.weeks.forEach(function (w) { delete draft.weeks[w.key]; });
+    });
+    if (rec && rec.name) draft.name = rec.name;
+  }
+
+  function monthSet(mk) { var m = draft.months[mk]; return m && m.s ? m : null; }
+  // The answer that applies to a week: its month setting if one is set, otherwise its own
+  function effective(w, mk) {
+    var m = monthSet(mk);
+    if (m) return { s: m.s, note: m.note, date: m.date, days: (m.days && m.days[w.key]) || [] };
+    return draft.weeks[w.key] || {};
+  }
+
+  function answeredCount() {
+    var n = 0;
+    CAL.forEach(function (m) { m.weeks.forEach(function (w) { if (effective(w, m.key).s) n++; }); });
+    return n;
+  }
+
+  function opts(cur) {
+    return STATUS.map(function (s) {
+      return '<option value="' + s[0] + '"' + (cur === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
+    }).join("");
+  }
+
+  function tabs() {
+    return '<div class="tabs" role="group" aria-label="View">' +
+      '<button data-act="view" data-v="respond" aria-pressed="' + (view === "respond") + '">Respond</button>' +
+      '<button data-act="view" data-v="overview" aria-pressed="' + (view === "overview") + '">Overview</button></div>';
+  }
+
+  function saveBar() {
+    var can = phase === "ready" && !saving;
+    var status = saving ? "Saving…" : "";
+    return '<div class="save"><span class="msg">' + answeredCount() + " of " + WEEKS.length + " weeks answered</span>" +
+      '<button class="primary" data-act="save"' + (can ? "" : " disabled") + ">Save my answers</button>" +
+      (status ? '<span class="msg">' + esc(status) + "</span>" : "") +
+      (msg ? '<span class="msg' + (msgErr ? " err" : "") + '">' + esc(msg) + "</span>" : "") + "</div>";
+  }
+
+  function monthCard(m) {
+    var my = +m.key.split("-")[0], mm = +m.key.split("-")[1] - 1;
+    var mset = monthSet(m.key);
+    var h = '<section class="card"><div class="mhead"><h2>' + esc(m.label) + "</h2>" +
+      '<label class="mset"><span class="lbl">Whole month</span><select data-field="month" data-m="' + m.key + '">' +
+      '<option value="">Set each week</option>' + opts(mset ? mset.s : "") + "</select></label></div>";
+    if (mset && mset.s === "partial") {
+      h += '<p class="mdetail lbl">Tap the days you\'re free below. Untapped days count as busy.</p>';
+    }
+    if (mset && mset.s === "tentative") {
+      h += '<label class="mdetail tdate"><span class="lbl">When do you think you will know?</span>' +
+        '<input type="date" data-field="date" data-m="' + m.key + '" value="' + esc(mset.date || "") + '"></label>';
+    }
+    h += '<div class="cal"><div class="hd l"></div><div class="hd l">Status</div>' +
+      DOW.map(function (d) { return '<div class="hd"><span class="lg">' + d + '</span><span class="sm">' + d.charAt(0) + "</span></div>"; }).join("");
+    m.weeks.forEach(function (w, i) {
+      var wa = draft.weeks[w.key] || {};
+      var val = mset ? mset.s : (wa.s || "");
+      h += '<div class="wk">Week ' + (i + 1) + "</div>" +
+        '<div class="ws"><select data-field="week" data-w="' + w.key + '" aria-label="Week ' + (i + 1) + " status (" + esc(w.label) + ')">' +
+        '<option value="">Not set</option>' + opts(val) + "</select></div>";
+      var e = effective(w, m.key), t0 = ts(w.key), isP = e.s === "partial", picked = e.days || [];
+      for (var d = 0; d < 7; d++) {
+        var dt = new Date(t0 + d * DAY), inM = dt.getUTCFullYear() === my && dt.getUTCMonth() === mm;
+        var cls = "d " + (e.s ? ST_CLS[e.s] : "st-none") + (inM ? "" : " out");
+        if (isP) {
+          var on = picked.indexOf(d) >= 0;
+          h += '<button class="' + cls + " tap" + (on ? " pk" : "") + '" data-act="day" data-w="' + w.key + '" data-i="' + d + '"' +
+            (mset ? ' data-m="' + m.key + '"' : "") + ' aria-pressed="' + on + '" aria-label="' + esc(dayName(w.key, d)) + (on ? ", free" : ", not free") + '">' +
+            dt.getUTCDate() + "</button>";
+        } else {
+          h += '<div class="' + cls + '">' + dt.getUTCDate() + "</div>";
+        }
+      }
+      if (!mset && wa.s === "partial") {
+        h += '<div class="hint">Tap the days you\'re free. Untapped days count as busy.</div>';
+      }
+      if (!mset && wa.s === "tentative") {
+        h += '<label class="wdetail tdate"><span class="lbl">When do you think you will know?</span>' +
+          '<input type="date" data-field="date" data-w="' + w.key + '" value="' + esc(wa.date || "") + '"></label>';
+      }
+    });
+    return h + "</div></section>";
+  }
+
+  function respondHTML() {
+    var h = "<h1>" + esc(CFG.title) + "</h1>" +
+      '<p class="sub">' + esc(TITLE_RANGE) + ". Set each week in the dropdowns, or set a whole month and then change any week that differs. For Set days, tap the days you're free.</p>" + tabs();
+    h += '<div class="card"><div class="who"><span class="lbl">Signed in as ' + esc(myEmail || "you") + '</span>' +
+      '<button class="link" data-act="signout">Sign out</button></div>' +
+      '<div class="field"><label><span class="lbl">Name shown to the group</span>' +
+      '<input data-field="name" value="' + esc(draft.name) + '" autocomplete="name" maxlength="80"></label></div></div>';
+    h += '<div class="legend">' + STATUS.map(function (s) {
+      return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>";
+    }).join("") + '<span><i class="st-none"></i>No response</span></div>';
+    h += '<div class="months">';
+    CAL.forEach(function (m) { h += monthCard(m); });
+    return h + "</div>" + saveBar();
+  }
+
+  function overviewHTML() {
+    var resp = Object.keys(STATE.responses).map(function (k) { return STATE.responses[k]; })
+      .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+    var n = resp.length;
+    var h = "<h1>" + esc(CFG.title) + '</h1><p class="sub">' + esc(TITLE_RANGE) + " · " + n + (n === 1 ? " response" : " responses") + "</p>" + tabs();
+    if (!n) {
+      h += '<div class="card"><p class="msg">No answers yet. Share the link and ask people to use the Respond tab.</p></div>';
+    } else {
+      h += '<div class="card people">' + resp.map(function (r) { return "<span" + (r.mine ? ' class="me"' : "") + ">" + esc(r.name) + (r.mine ? " (you)" : "") + "</span>"; }).join("") + "</div>";
+    }
+    h += '<div class="legend">' + STATUS.map(function (s) {
+      return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>";
+    }).join("") + '<span><i class="st-none"></i>No response</span></div>';
+    var rows = [], top = 0;
+    CAL.forEach(function (m) {
+      m.weeks.forEach(function (w) {
+        var c = { open: 0, partial: 0, tentative: 0, na: 0 }, none = 0, notes = [], free = [0, 0, 0, 0, 0, 0, 0], anyP = false;
+        resp.forEach(function (r) {
+          var a = r.weeks && r.weeks[w.key];
+          if (!a || c[a.s] === undefined) { none++; return; }
+          c[a.s]++;
+          if (a.s === "open") for (var i = 0; i < 7; i++) free[i]++;
+          if (a.s === "partial") {
+            anyP = true;
+            var ds = cleanDays(a.days);
+            ds.forEach(function (i) { free[i]++; });
+            var parts = [];
+            if (ds.length) parts.push("free " + ds.map(function (i) { return DOW[i]; }).join(", "));
+            notes.push(esc(r.name) + ": " + (parts.join(". ") || "partial"));
+          }
+          if (a.s === "tentative") notes.push(esc(r.name) + ": not sure yet, will know by " + esc(fmtDate(a.date)));
+        });
+        if (c.open > top) top = c.open;
+        rows.push({ m: m, w: w, c: c, none: none, notes: notes, free: free, anyP: anyP });
+      });
+    });
+    var lastM = "";
+    h += '<div class="months">';
+    rows.forEach(function (r) {
+      if (r.m.key !== lastM) {
+        if (lastM) h += "</section>";
+        lastM = r.m.key;
+        h += '<section class="card"><h2>' + esc(r.m.label) + "</h2>";
+      }
+      var c = r.c, best = top > 0 && c.open === top;
+      var segs = STATUS.map(function (s) {
+        var pct = n ? (c[s[0]] / n * 100) : 0;
+        return '<i class="s-' + s[0] + '" style="width:' + pct + '%"></i>';
+      }).join("");
+      if (r.none) segs += '<i class="s-none" style="width:' + (r.none / n * 100) + '%"></i>';
+      h += '<div class="ovw"><div class="wl">Week of ' + esc(r.w.label) + (best ? '<span class="tag">Most free</span>' : "") + "</div>" +
+        '<div class="bar">' + segs + "</div>" +
+        '<div class="counts">' + STATUS.map(function (s) { return s[1] + " " + c[s[0]]; }).join(" · ") +
+        (r.none ? " · No response " + r.none : "") + "</div>";
+      if (r.anyP) {
+        h += '<div class="free">Free by day: ' + DOW.map(function (d, i) { return d + " <b>" + r.free[i] + "</b>"; }).join(" · ") + "</div>";
+      }
+      if (r.notes.length) h += '<ul class="notes">' + r.notes.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
+      h += "</div>";
+    });
+    if (lastM) h += "</section>";
+    return h + "</div>";
+  }
+
+  function render() {
+    var head = "<h1>" + esc(CFG.title) + "</h1>";
+    if (phase !== "ready") {
+      authBox.hidden = phase !== "signin";
+      if (phase === "loading") app.innerHTML = head + '<p class="sub">Loading…</p>';
+      else if (phase === "signin") app.innerHTML = head + '<p class="sub">' + esc(TITLE_RANGE) + ". Sign in with Google so your answers are saved to you and only you can change them.</p>";
+      else app.innerHTML = head + '<div class="card"><p class="msg err">' + esc(phaseMsg) + "</p></div>";
+      return;
+    }
+    authBox.hidden = true;
+    app.innerHTML = view === "overview" ? overviewHTML() : respondHTML();
+  }
+
+  function api(method, body) {
+    return window.Clerk.session.getToken().then(function (tok) {
+      return fetch("/api/responses", {
+        method: method,
+        headers: { "content-type": "application/json", authorization: "Bearer " + tok },
+        body: body ? JSON.stringify(body) : undefined
+      });
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.error || "Request failed (" + r.status + ").");
+        return d;
+      });
+    });
+  }
+
+  function refresh(loadDraft) {
+    return api("GET").then(function (d) {
+      STATE.responses = d.responses || [];
+      if (loadDraft && d.me) loadMine(d.me);
+    });
+  }
+
+  function fail(t) { msg = t; msgErr = true; render(); }
+
+  function save() {
+    var name = (draft.name || "").trim();
+    if (!name) return fail("Enter your name first.");
+    var errs = [], months = {}, weeks = {};
+    CAL.forEach(function (m) {
+      var ms = monthSet(m.key);
+      if (ms) {
+        var anyDay = false, mdays = {};
+        if (ms.s === "partial") {
+          m.weeks.forEach(function (w) {
+            var ds = cleanDays(ms.days && ms.days[w.key]);
+            if (ds.length) { anyDay = true; mdays[w.key] = ds; }
+          });
+          if (!anyDay) errs.push("For " + m.label + ", tap at least one day you're free (or choose Busy).");
+        }
+        if (ms.s === "tentative" && !ms.date) errs.push("For " + m.label + ", pick when you think you will know.");
+        months[m.key] = { s: ms.s, note: "", date: ms.s === "tentative" ? ms.date : "", days: ms.s === "partial" ? mdays : {} };
+      }
+      m.weeks.forEach(function (w) {
+        var a = effective(w, m.key);
+        if (!a || !a.s) return;
+        var ds = a.s === "partial" ? cleanDays(a.days) : [];
+        if (!ms) {
+          if (a.s === "partial" && !ds.length) errs.push("For " + weekLabel(w.key) + ", tap at least one day you're free (or choose Busy).");
+          if (a.s === "tentative" && !a.date) errs.push("For " + weekLabel(w.key) + ", pick when you think you will know.");
+        }
+        weeks[w.key] = { s: a.s, note: "", date: a.s === "tentative" ? a.date : "", days: ds };
+      });
+    });
+    if (errs.length) return fail(errs[0] + (errs.length > 1 ? " (" + (errs.length - 1) + " more to fix.)" : ""));
+    saving = true; msg = ""; msgErr = false; render();
+    api("PUT", { name: name, weeks: weeks, months: months })
+      .then(function () { return refresh(false); })
+      .then(function () { saving = false; msg = "Saved."; msgErr = false; render(); },
+            function (e) { saving = false; fail("Could not save: " + (e.message || e)); });
+  }
+
+  function toggleDay(b) {
+    var w = b.getAttribute("data-w"), i = +b.getAttribute("data-i"), mk = b.getAttribute("data-m"), holder;
+    if (mk) {
+      var M = draft.months[mk];
+      if (!M) return;
+      M.days = M.days || {};
+      holder = { get: function () { return M.days[w] || []; }, set: function (v) { M.days[w] = v; } };
+    } else {
+      var W = draft.weeks[w];
+      if (!W) return;
+      holder = { get: function () { return W.days || []; }, set: function (v) { W.days = v; } };
+    }
+    var cur = holder.get().slice(), at = cur.indexOf(i);
+    if (at >= 0) cur.splice(at, 1); else cur.push(i);
+    holder.set(cleanDays(cur));
+    msg = ""; render();
+    var again = app.querySelector('button[data-act="day"][data-w="' + w + '"][data-i="' + i + '"]');
+    if (again) again.focus();
+  }
+
+  app.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-act]") : null;
+    if (!b || b.disabled) return;
+    var act = b.getAttribute("data-act");
+    if (act === "view") {
+      view = b.getAttribute("data-v"); store.set("av-view", view); msg = ""; render();
+    } else if (act === "day") {
+      toggleDay(b);
+    } else if (act === "save") {
+      save();
+    } else if (act === "signout") {
+      window.Clerk.signOut().then(function () { location.reload(); });
+    }
+  });
+
+  app.addEventListener("input", function (e) {
+    var el = e.target, f = el.getAttribute("data-field");
+    if (!f) return;
+    if (f === "name") draft.name = el.value;
+    else if (f === "email") draft.email = el.value;
+    else if (f === "note" || f === "date") {
+      var w = el.getAttribute("data-w"), m = el.getAttribute("data-m");
+      if (m) { if (draft.months[m]) draft.months[m][f] = el.value; }
+      else if (w) { if (draft.weeks[w]) draft.weeks[w][f] = el.value; }
+    }
+  });
+
+  app.addEventListener("change", function (e) {
+    var el = e.target, f = el.getAttribute("data-field");
+    if (!f) return;
+    if (f === "week") {
+      var w = el.getAttribute("data-w"), v = el.value;
+      CAL.forEach(function (m) {
+        var M = monthSet(m.key);
+        if (!M || !m.weeks.some(function (x) { return x.key === w; })) return;
+        m.weeks.forEach(function (x) {
+          draft.weeks[x.key] = { s: M.s, note: "", date: M.s === "tentative" ? (M.date || "") : "",
+            days: M.s === "partial" ? ((M.days && M.days[x.key]) || []).slice() : [] };
+        });
+        delete draft.months[m.key];
+      });
+      var prevW = draft.weeks[w] || {};
+      if (!v) delete draft.weeks[w];
+      else draft.weeks[w] = { s: v, note: prevW.note || "", date: prevW.date || "", days: prevW.days || [] };
+      msg = ""; render();
+    } else if (f === "month") {
+      var mk = el.getAttribute("data-m"), mv = el.value, prevM = draft.months[mk] || {};
+      if (!mv) delete draft.months[mk];
+      else {
+        draft.months[mk] = { s: mv, note: prevM.note || "", date: prevM.date || "", days: prevM.days || {} };
+        CAL.forEach(function (m) {
+          if (m.key === mk) m.weeks.forEach(function (w) { delete draft.weeks[w.key]; });
+        });
+      }
+      msg = ""; render();
+    }
+  });
+
+  function frontendApi(pk) {
+    try { return atob(String(pk).split("_")[2]).replace(/\$$/, ""); } catch (e) { return ""; }
+  }
+  function loadClerk(pk) {
+    return new Promise(function (resolve, reject) {
+      var host = frontendApi(pk);
+      if (!host) return reject(new Error("The sign-in key looks wrong. Check CLERK_PUBLISHABLE_KEY in Vercel."));
+      var s = document.createElement("script");
+      s.async = true;
+      s.crossOrigin = "anonymous";
+      s.setAttribute("data-clerk-publishable-key", pk);
+      s.src = "https://" + host + "/npm/@clerk/clerk-js@6/dist/clerk.browser.js";
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error("Could not load the sign-in service. Check your connection and reload.")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function boot() {
+    render();
+    fetch("/api/config").then(function (r) { return r.json(); }).then(function (cfg) {
+      if (!cfg.publishableKey) throw new Error("Sign-in isn't set up yet. Missing: " + ((cfg.missing || []).join(", ") || "CLERK_PUBLISHABLE_KEY") + ".");
+      return loadClerk(cfg.publishableKey);
+    }).then(function () {
+      return window.Clerk.load();
+    }).then(function () {
+      var C = window.Clerk;
+      if (!C.user) {
+        phase = "signin"; render();
+        C.mountSignIn(authBox);
+        C.addListener(function (e) { if (e && e.user && phase === "signin") location.reload(); });
+        return;
+      }
+      myEmail = (C.user.primaryEmailAddress && C.user.primaryEmailAddress.emailAddress) || "";
+      draft.name = C.user.fullName || C.user.firstName || "";
+      return refresh(true).then(function () { phase = "ready"; render(); });
+    }).catch(function (e) {
+      phase = "error"; phaseMsg = e && e.message ? e.message : String(e); render();
+    });
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
