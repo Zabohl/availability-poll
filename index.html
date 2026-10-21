@@ -267,6 +267,53 @@ i.st-none{background:var(--none)}
 .popt span{font-size:12px;color:var(--muted)}
 .popt.on,.popt:hover{background:var(--soft)}
 .pempty{padding:8px 10px;font-size:13px;color:var(--muted)}
+
+/* v4: header chips, timeline, plan links, organizer pages, itinerary */
+.hchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.hchip{font-size:13px;padding:3px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.hchip.strong{color:var(--fg);font-weight:700}
+.hchip.acc{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:600}
+.timeline{list-style:none;display:flex;gap:0;margin:18px 0 20px;padding:0;overflow-x:auto}
+.timeline li{flex:1;min-width:120px;display:flex;align-items:center;gap:8px;position:relative;padding-right:10px;font-size:13px;color:var(--muted)}
+.timeline li:not(:last-child)::after{content:"";flex:1;height:2px;background:var(--line);min-width:12px}
+.timeline li.done:not(:last-child)::after{background:var(--accent)}
+.timeline .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--soft);color:var(--muted);flex:none;border:2px solid var(--line)}
+.timeline li.done .dot{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.timeline li.now .dot{background:var(--card);border-color:var(--accent);color:var(--accent)}
+.timeline li.now .tl{color:var(--fg);font-weight:700}
+.timeline li.done .tl{color:var(--fg)}
+.timeline .tl{white-space:nowrap}
+.timeline button.tl{background:none;border:none;padding:0;min-height:0;font:inherit;color:inherit;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.pagetitle{font-size:18px;margin:0 0 12px}
+.alinks{display:grid;gap:0;margin-top:6px;border-top:1px solid var(--line)}
+.alink{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 2px;border:none;border-bottom:1px solid var(--line);border-radius:0;background:none;text-decoration:none;color:var(--accent);text-align:left;width:100%;min-height:0;font-weight:500}
+.alink:hover{background:var(--soft);border-color:var(--line)}
+.alink b{display:block;font-weight:700}
+.alink small{display:block;color:var(--muted);font-size:12px;font-weight:500}
+.alink.todo small{color:var(--unsure)}
+.todo-text{color:var(--unsure)}
+.section{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+.sh{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px}
+.subnav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.subnav a{padding:6px 12px;border-radius:999px;text-decoration:none;color:var(--muted);font-weight:600;font-size:13px;border:1px solid var(--line);background:var(--card)}
+.subnav a.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.checklist{display:grid;gap:10px}
+.ck{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.ck .dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--soft);color:var(--muted);flex:none}
+.ck.done .dot{background:var(--accent);color:var(--accent-fg)}
+.ck.now{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.ck.now .dot{background:var(--accent-soft);color:var(--accent)}
+.ckb{min-width:0;flex:1}
+.iday{margin-bottom:12px}
+.ihead{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.item{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:1px dashed var(--line)}
+.itime{font-size:12px;font-weight:700;color:var(--accent);min-width:64px;padding-top:2px;font-variant-numeric:tabular-nums}
+.ibody{flex:1;min-width:0}
+.ibody b{display:block}
+.ibody p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.iform{background:var(--soft);border-radius:10px;padding:12px;margin:6px 0}
+a.btn.sm{font-size:13px}
 @media (prefers-reduced-motion:no-preference){a.ev,.sd,button{transition:border-color .15s,background-color .15s}}
 </style>
 </head>
@@ -359,7 +406,7 @@ i.st-none{background:var(--none)}
     events: null, ev: null, cal: [], weeks: [],
     draft: { weeks: {}, months: {} }, dirty: false,
     msg: "", msgErr: false, saving: false, menu: false,
-    hl: null, sel: null, ex: { mode: "all" }, ask: null, openInvite: false
+    hl: null, sel: null, ex: { mode: "all" }, ask: null, openInvite: false, omenu: false, pfilter: "all", editItem: null, lastDay: 1
   };
   var top = document.getElementById("top"), app = document.getElementById("app"), modalRoot = document.getElementById("modal"), tip = document.getElementById("tip");
   var C = null;
@@ -388,18 +435,22 @@ i.st-none{background:var(--none)}
   }
 
   // ---------- routing ----------
-  var TABS = ["availability", "summary", "settings"];
+  var SUBS = ["availability", "group", "settings", "organizer"];
   function parseRoute() {
     var h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
     if (p[0] === "new") return { name: "new" };
     if (p[0] === "account") return { name: "account" };
-    if (p[0] === "e" && p[1]) return { name: "event", id: p[1], tab: TABS.indexOf(p[2]) >= 0 ? p[2] : "overview" };
+    if (p[0] === "e" && p[1]) {
+      var tab = SUBS.indexOf(p[2]) >= 0 ? p[2] : "overview";
+      var sub = tab === "organizer" ? (["schedule", "itinerary", "people"].indexOf(p[3]) >= 0 ? p[3] : "checklist") : null;
+      return { name: "event", id: p[1], tab: tab, sub: sub };
+    }
     return { name: "home" };
   }
   function nav(h) { if (location.hash === h) go(); else location.hash = h; }
   function go() {
     var prev = S.route;
-    S.route = parseRoute(); S.msg = ""; S.msgErr = false; S.menu = false; S.ask = null; hideTip();
+    S.route = parseRoute(); S.msg = ""; S.msgErr = false; S.menu = false; S.omenu = false; S.ask = null; S.editItem = null; hideTip();
     if (!signedIn()) {
       if (S.route.name === "event" && (!S.invite || S.invite.id !== S.route.id)) {
         fetch("/api/invite?id=" + encodeURIComponent(S.route.id)).then(function (r) { return r.json(); })
@@ -415,8 +466,9 @@ i.st-none{background:var(--none)}
     } else if (r.name === "new") {
       app.innerHTML = ""; render(); mountPicker("new", []); loadContacts();
     } else if (r.name === "event") {
-      if (S.ev && S.ev.event && S.ev.event.id === r.id && prev.name === "event" && prev.id === r.id) { render(); afterEventRender(); return; }
-      if (!(prev.name === "event" && prev.id === r.id)) S.ex = { mode: "all" };
+      var same = prev.name === "event" && prev.id === r.id;
+      if (!same) { S.ex = { mode: "all" }; S.pfilter = "all"; }
+      if (S.ev && S.ev.event && S.ev.event.id === r.id && same) { render(); afterEventRender(); window.scrollTo(0, 0); if (prev.tab !== r.tab || prev.sub !== r.sub) loadEvent(r.id, true); return; }
       S.ev = null; render(); loadEvent(r.id);
     } else render();
   }
@@ -426,6 +478,7 @@ i.st-none{background:var(--none)}
       S.cal = buildCal(d.event.start_date, d.event.end_date);
       S.weeks = []; S.cal.forEach(function (m) { m.weeks.forEach(function (w) { S.weeks.push(w); }); });
       if (!keepDraft) { loadMine(d.mine); S.dirty = false; }
+      if (!S.ex.len) S.ex.len = d.event.final_days || d.event.block_min;
       render(); afterEventRender();
     }, function (e) { S.ev = { error: e.message }; render(); });
   }
@@ -512,13 +565,38 @@ i.st-none{background:var(--none)}
   }
   function msgHTML() { return S.msg ? '<p class="msg' + (S.msgErr ? " err" : " ok") + '" role="status">' + esc(S.msg) + "</p>" : ""; }
 
-  // ---------- home ----------
-  function myStatusChip(e) {
-    if (e.rsvp === "no" || e.attend === "not_going") return '<span class="chip no">Not going</span>';
-    if (e.final_start) return e.attend === "going" ? '<span class="chip go">Going</span>' : '<span class="chip todo">Confirm attendance</span>';
-    if (!e.rsvp && !e.me_responded) return '<span class="chip todo">Reply to invite</span>';
-    return e.me_responded ? '<span class="chip go">Availability shared</span>' : '<span class="chip todo">Add availability</span>';
+  // ---------- length + stage helpers ----------
+  function fmtLen(n) { n = +n || 1; return n % 7 === 0 ? (n / 7) + (n === 7 ? " week" : " weeks") : n + (n === 1 ? " day" : " days"); }
+  function lenText(e) {
+    if (e.final_days) return fmtLen(e.final_days);
+    var a = +e.block_min || +e.block_days || 1, b = +e.block_max || a;
+    if (a === b) return fmtLen(a);
+    if (a % 7 === 0 && b % 7 === 0) return (a / 7) + "–" + (b / 7) + " weeks";
+    return a + "–" + b + " days";
   }
+  var STEPS = [
+    { key: "define", label: "Define the event" },
+    { key: "invite", label: "Invite people" },
+    { key: "dates", label: "Find possible dates", opt: "availability" },
+    { key: "itinerary", label: "Plan the itinerary", opt: "itinerary" },
+    { key: "set", label: "Set the dates" }
+  ];
+  function stepsFor(e) { var st = e.steps || {}; return STEPS.filter(function (s) { return !s.opt || st[s.opt] !== false; }); }
+  function stageKey(e) {
+    var list = stepsFor(e), k = e.final_start ? "set" : (e.stage || "invite");
+    return list.some(function (s) { return s.key === k; }) ? k : "invite";
+  }
+  function stageLabel(e) { var k = stageKey(e); var s = STEPS.find(function (x) { return x.key === k; }); return s ? s.label : ""; }
+  function rsvpWord(r) { return r === "yes" ? "Going" : r === "maybe" ? "Not sure" : r === "no" ? "Not going" : "No reply"; }
+  function myStatusChip(e) {
+    if (e.needs_confirm) return '<span class="chip todo">Confirm new dates</span>';
+    if (e.rsvp === "no") return '<span class="chip no">Not going</span>';
+    if (e.rsvp === "maybe") return '<span class="chip todo">Not sure</span>';
+    if (e.rsvp === "yes") return '<span class="chip go">Going</span>';
+    return '<span class="chip todo">Reply needed</span>';
+  }
+
+  // ---------- home ----------
   function homeHTML() {
     var h = '<div class="head"><div><h1>My events</h1><p class="sub" style="margin:0">Events you organize or have been invited to.</p></div>' +
       '<button class="primary" data-act="go" data-h="#/new">New event</button></div>' + msgHTML();
@@ -529,12 +607,12 @@ i.st-none{background:var(--none)}
     }
     h += '<div class="events">';
     S.events.forEach(function (e) {
-      var when = e.final_start ? fmtSpan(e.final_start, e.final_end) : "Planning · " + fmtSpan(e.start_date, e.end_date);
+      var when = e.final_start ? fmtSpan(e.final_start, e.final_end) : "Polling " + fmtSpan(e.start_date, e.end_date);
       var role = e.is_owner || e.role === "owner" ? "Organizer" : e.role === "admin" ? "Co-organizer" : "Invited" + (e.owner_name ? " by " + e.owner_name : "");
       h += '<a class="ev" href="#/e/' + esc(e.id) + '"><h3>' + esc(e.title) + "</h3>" +
-        '<div class="meta">' + esc(when) + (e.location ? " · " + esc(e.location) : "") + "</div>" +
-        '<div class="chips"><span class="chip acc">' + esc(role) + "</span>" + myStatusChip(e) +
-        '<span class="chip">' + e.going + " of " + e.members + " planning to go</span></div></a>";
+        '<div class="meta">' + esc(when) + " · " + esc(lenText(e)) + (e.location ? " · " + esc(e.location) : "") + "</div>" +
+        '<div class="chips"><span class="chip acc">' + esc(stageLabel(e)) + "</span>" + myStatusChip(e) +
+        '<span class="chip">' + esc(role) + '</span><span class="chip">' + e.going + " of " + e.members + " going</span></div></a>";
     });
     return h + "</div>";
   }
@@ -545,17 +623,26 @@ i.st-none{background:var(--none)}
     return [d2s(Date.UTC(y, m, 1)), d2s(Date.UTC(y, m + 4, 0))];
   }
   function detailsFields(v) {
-    var b = +v.block_days || 1, unit = b % 7 === 0 ? "weeks" : "days", amt = unit === "weeks" ? b / 7 : b;
     return '<div class="field"><label class="lbl" for="ftitle">Event name</label><input id="ftitle" name="title" required maxlength="120" placeholder="Ski trip, offsite, game weekend…" value="' + esc(v.title) + '"></div>' +
       '<div class="field"><label class="lbl" for="floc">Location</label><input id="floc" name="location" maxlength="200" placeholder="City, venue or “TBD”" value="' + esc(v.location || "") + '"></div>' +
-      '<div class="field"><label class="lbl" for="fdesc">Description</label><textarea id="fdesc" name="description" maxlength="2000" placeholder="What it is and anything people should know">' + esc(v.description || "") + "</textarea></div>" +
-      '<div class="grid2">' +
+      '<div class="field"><label class="lbl" for="fdesc">Description</label><textarea id="fdesc" name="description" maxlength="2000" placeholder="What it is and anything people should know">' + esc(v.description || "") + "</textarea></div>";
+  }
+  function whenFields(v) {
+    var a = +v.block_min || 1, b = +v.block_max || a, wk = a % 7 === 0 && b % 7 === 0;
+    return '<div class="grid2">' +
       '<div class="field"><label class="lbl" for="fstart">Poll availability from</label><input type="date" id="fstart" name="start_date" required value="' + esc(v.start_date) + '"></div>' +
-      '<div class="field"><label class="lbl" for="fend">Until</label><input type="date" id="fend" name="end_date" required value="' + esc(v.end_date) + '"></div>' +
-      '<div class="field"><label class="lbl" for="famt">Event length</label><div class="row" style="flex-wrap:nowrap">' +
-      '<input type="number" id="famt" name="block_amt" min="1" max="400" required value="' + amt + '" style="max-width:90px">' +
-      '<select id="funit" name="block_unit" style="min-height:38px;width:auto"><option value="days"' + (unit === "days" ? " selected" : "") + '>days</option><option value="weeks"' + (unit === "weeks" ? " selected" : "") + ">weeks</option></select></div></div></div>" +
-      '<p class="msg" style="margin:-4px 0 4px">The group summary uses the event length to suggest the best windows.</p>';
+      '<div class="field"><label class="lbl" for="fend">Until</label><input type="date" id="fend" name="end_date" required value="' + esc(v.end_date) + '"></div></div>' +
+      '<div class="field"><span class="lbl">How long is the event?</span><div class="row">' +
+      '<input type="number" name="block_lo" min="1" max="60" required value="' + (wk ? a / 7 : a) + '" style="width:80px" aria-label="Shortest length">' +
+      '<span class="lbl">to</span><input type="number" name="block_hi" min="1" max="60" required value="' + (wk ? b / 7 : b) + '" style="width:80px" aria-label="Longest length">' +
+      '<select name="block_unit" style="width:auto;min-height:38px"><option value="days"' + (wk ? "" : " selected") + '>days</option><option value="weeks"' + (wk ? " selected" : "") + ">weeks</option></select></div>" +
+      '<span class="msg">Not sure yet? Give a range, like 2 to 4 days. It becomes fixed when you set the dates.</span></div>';
+  }
+  function stepsFields(v) {
+    var st = v.steps || { availability: true, itinerary: true };
+    return '<fieldset><legend>Planning steps</legend><p class="msg" style="margin:-4px 0 10px">Define, Invite and Set the dates are always part of the plan. Choose the optional steps.</p>' +
+      '<label class="check"><input type="checkbox" name="step_availability"' + (st.availability !== false ? " checked" : "") + '><span><b>Find possible dates</b><small>Everyone shares which weeks work, and you get a group calendar and best windows.</small></span></label>' +
+      '<label class="check"><input type="checkbox" name="step_itinerary"' + (st.itinerary !== false ? " checked" : "") + '><span><b>Plan an itinerary</b><small>Lay out Day 1, Day 2… activities. They turn into real dates once the dates are set.</small></span></label></fieldset>';
   }
   function sharingFields(v) {
     var h = '<fieldset><legend>Schedule privacy</legend>';
@@ -563,17 +650,20 @@ i.st-none{background:var(--none)}
       h += '<label class="radio"><input type="radio" name="privacy" value="' + k + '"' + (v.privacy === k ? " checked" : "") + "><span><b>" + PRIVACY[k][0] + "</b><small>" + PRIVACY[k][1] + "</small></span></label>";
     });
     h += '</fieldset><fieldset><legend>Who can invite people</legend>' +
-      '<label class="radio"><input type="radio" name="invite_policy" value="organizers"' + (v.invite_policy !== "anyone" ? " checked" : "") + '><span><b>Organizers only</b><small>Only you and co-organizers see the invite buttons.</small></span></label>' +
+      '<label class="radio"><input type="radio" name="invite_policy" value="organizers"' + (v.invite_policy !== "anyone" ? " checked" : "") + '><span><b>Organizers only</b><small>Only you and co-organizers see the invite options.</small></span></label>' +
       '<label class="radio"><input type="radio" name="invite_policy" value="anyone"' + (v.invite_policy === "anyone" ? " checked" : "") + '><span><b>Anyone in the event</b><small>Guests can copy the link and invite others too.</small></span></label></fieldset>' +
       '<label class="check"><input type="checkbox" name="open_join"' + (v.open_join !== false ? " checked" : "") + "><span><b>Anyone with the link can join</b><small>Handy for group chats. Turn off to limit the event to people on the invite list.</small></span></label>";
     return h;
   }
   function readEventForm(f) {
-    var amt = Math.max(1, Math.round(+f.block_amt.value || 1)), pv = f.querySelector("input[name=privacy]:checked"), ip = f.querySelector("input[name=invite_policy]:checked");
+    var mult = f.block_unit.value === "weeks" ? 7 : 1;
+    var lo = Math.max(1, Math.round(+f.block_lo.value || 1)) * mult, hi = Math.max(1, Math.round(+f.block_hi.value || 1)) * mult;
+    var pv = f.querySelector("input[name=privacy]:checked"), ip = f.querySelector("input[name=invite_policy]:checked");
     return {
       title: f.title.value, location: f.location.value, description: f.description.value,
       start_date: f.start_date.value, end_date: f.end_date.value,
-      block_days: f.block_unit.value === "weeks" ? amt * 7 : amt,
+      block_min: Math.min(lo, hi), block_max: Math.max(lo, hi),
+      steps: { availability: f.step_availability ? f.step_availability.checked : true, itinerary: f.step_itinerary ? f.step_itinerary.checked : true },
       privacy: pv ? pv.value : "everyone", invite_policy: ip ? ip.value : "organizers",
       open_join: f.open_join ? f.open_join.checked : true,
       invite_message: f.invite_message ? f.invite_message.value : ""
@@ -581,10 +671,12 @@ i.st-none{background:var(--none)}
   }
   function newEventHTML() {
     var dd = defaultDates();
-    var v = { title: "", location: "", description: "", start_date: dd[0], end_date: dd[1], block_days: 7, privacy: "everyone", invite_policy: "organizers", open_join: true };
-    return '<div class="narrow"><a class="crumb" href="#/">← My events</a><h1>New event</h1><p class="sub">Set the period to poll, how long the event runs and who to invite. You can change all of this later.</p>' +
+    var v = { title: "", location: "", description: "", start_date: dd[0], end_date: dd[1], block_min: 2, block_max: 4, privacy: "everyone", invite_policy: "organizers", open_join: true, steps: { availability: true, itinerary: true } };
+    return '<div class="narrow"><a class="crumb" href="#/">← My events</a><h1>New event</h1><p class="sub">Describe the event, choose your planning steps and invite people. You can change all of this later.</p>' +
       '<form data-form="create">' +
       '<div class="card"><h2>Details</h2>' + detailsFields(v) + "</div>" +
+      '<div class="card"><h2>When</h2>' + whenFields(v) + "</div>" +
+      '<div class="card"><h2>Plan</h2>' + stepsFields(v) + "</div>" +
       '<div class="card"><h2>Invite people</h2><div class="field"><span class="lbl">People</span>' + pickerHTML("new", "Type a name or email, or paste a list") +
       '<span class="msg">Pick from people you\'ve planned with before, or add any email address. Separate several with commas.</span></div>' +
       '<div class="field"><label class="lbl" for="fmsg">Message to include in the invite (optional)</label><textarea id="fmsg" name="invite_message" maxlength="1000" placeholder="Hey all, let\'s find a weekend for the ski trip!"></textarea></div></div>' +
@@ -598,127 +690,168 @@ i.st-none{background:var(--none)}
   function roleLabel(r) { return r === "owner" ? "Organizer" : r === "admin" ? "Co-organizer" : "Guest"; }
   function personRow(p, extra) {
     return '<div class="person"><span class="av">' + esc(initials(p.name)) + '</span><span class="nm">' + esc(p.name) + (p.me ? " (you)" : "") +
-      (p.pending ? ' <span class="lbl">· not signed in yet</span>' : "") + "</span>" +
-      (p.role !== "guest" ? '<span class="chip acc tag">' + roleLabel(p.role) + "</span>" : extra ? '<span class="tag">' + extra + "</span>" : "") + "</div>";
+      (p.pending ? ' <span class="lbl">· not signed in yet</span>' : "") + (extra ? ' <span class="lbl">· ' + extra + "</span>" : "") + "</span>" +
+      (p.role !== "guest" ? '<span class="chip acc tag">' + roleLabel(p.role) + "</span>" : "") + "</div>";
   }
-  function groupsFor() {
-    var ev = S.ev.event, ps = people();
-    if (ev.final_start) {
-      return [
-        ["Going", ps.filter(function (p) { return p.attend === "going"; })],
-        ["Waiting to confirm", ps.filter(function (p) { return p.attend !== "going" && p.attend !== "not_going" && p.rsvp !== "no"; })],
-        ["Can't go", ps.filter(function (p) { return p.attend === "not_going" || p.rsvp === "no"; })]
-      ];
-    }
-    return [
-      ["Planning to go", ps.filter(function (p) { return p.rsvp === "yes"; })],
-      ["Hasn't replied", ps.filter(function (p) { return !p.rsvp; })],
-      ["Not going", ps.filter(function (p) { return p.rsvp === "no"; })]
-    ];
+  function statusOf(p) {
+    if (p.needs_confirm) return "confirm";
+    return p.rsvp === "yes" ? "yes" : p.rsvp === "maybe" ? "maybe" : p.rsvp === "no" ? "no" : "none";
   }
+  var GROUPS = [["yes", "Going"], ["confirm", "Needs to confirm the dates"], ["maybe", "Not sure"], ["none", "Hasn't replied"], ["no", "Not going"]];
   function whosInHTML() {
-    var h = '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Who\'s in</h2>' +
-      (S.ev.me.can_invite ? '<button class="sm" data-act="invite">Invite people</button>' : "") + "</div>";
-    groupsFor().forEach(function (g) {
-      if (!g[1].length) return;
-      h += '<div class="group"><h3>' + g[0] + " · " + g[1].length + '</h3><div class="plist">' +
-        g[1].map(function (p) { return personRow(p, !S.ev.event.final_start && p.rsvp === "yes" && !p.responded ? '<span class="lbl">no availability yet</span>' : ""); }).join("") + "</div></div>";
+    var ps = people(), h = "";
+    GROUPS.forEach(function (g) {
+      var list = ps.filter(function (p) { return statusOf(p) === g[0]; });
+      if (!list.length) return;
+      h += '<div class="group"><h3>' + g[1] + " · " + list.length + '</h3><div class="plist">' +
+        list.map(function (p) { return personRow(p, g[0] === "maybe" && p.know_by ? "knows by " + fmtDate(p.know_by) : ""); }).join("") + "</div></div>";
     });
-    return h + "</div>";
+    return h || '<p class="msg">Nobody has been invited yet.</p>';
   }
 
-  // ---------- event page ----------
+  // ---------- event shell: header, timeline, organizer menu ----------
   function inviteLink() { return location.origin + location.pathname + "#/e/" + S.ev.event.id; }
+  function timelineHTML() {
+    var e = S.ev.event, me = S.ev.me, list = stepsFor(e), cur = stageKey(e);
+    var ci = list.findIndex(function (s) { return s.key === cur; });
+    var h = '<ol class="timeline" aria-label="Planning progress">';
+    list.forEach(function (s, i) {
+      var state = i < ci || s.key === "define" ? "done" : i === ci ? "now" : "next";
+      var label = (s.key === "set" && e.final_start) ? "Dates set" : s.label;
+      var canMove = me.is_admin && !e.final_start && ["invite", "dates", "itinerary"].indexOf(s.key) >= 0 && s.key !== cur;
+      h += '<li class="' + state + '"><span class="dot" aria-hidden="true">' + (state === "done" ? "✓" : i + 1) + "</span>" +
+        (canMove ? '<button class="tl" data-act="stage" data-v="' + s.key + '" title="Make this the current step">' + esc(label) + "</button>" : '<span class="tl">' + esc(label) + "</span>") +
+        (state === "now" ? '<span class="sr">(current step)</span>' : "") + "</li>";
+    });
+    return h + "</ol>";
+  }
+  function headerHTML(back) {
+    var e = S.ev.event, me = S.ev.me, r = S.route;
+    var when = e.final_start ? '<span class="hchip strong">' + esc(fmtSpan(e.final_start, e.final_end)) + "</span>"
+      : '<span class="hchip">Polling ' + esc(fmtSpan(e.start_date, e.end_date)) + "</span>";
+    var h = (back ? '<a class="crumb" href="#/e/' + e.id + '">← Back to event</a>' : '<a class="crumb" href="#/">← My events</a>') +
+      '<div class="ehead"><div style="min-width:0;flex:1"><h1>' + esc(e.title) + "</h1>" +
+      '<div class="hchips">' + when + '<span class="hchip">' + esc(lenText(e)) + "</span>" +
+      (e.location ? '<span class="hchip">📍 ' + esc(e.location) + "</span>" : "") +
+      '<span class="hchip" title="' + esc(PRIVACY[e.privacy] ? PRIVACY[e.privacy][1] : "") + '">🔒 ' + esc(PRIVACY[e.privacy] ? PRIVACY[e.privacy][0] : "") + "</span>" +
+      '<span class="hchip acc">' + esc(roleLabel(me.role)) + "</span></div></div>";
+    if (me.is_admin) {
+      h += '<div class="row" style="position:relative"><button data-act="omenu" aria-haspopup="menu" aria-expanded="' + !!S.omenu + '"' + (r.tab === "organizer" ? ' class="primary"' : "") + ">Organizer ▾</button>" +
+        '<button data-act="go" data-h="#/e/' + e.id + '/settings"' + (r.tab === "settings" ? ' class="primary"' : "") + ">Event settings</button>";
+      if (S.omenu) {
+        h += '<div class="menu" role="menu" style="top:44px;right:0">' +
+          '<button role="menuitem" data-act="go" data-h="#/e/' + e.id + '/organizer">Checklist</button>' +
+          (e.steps.availability ? '<button role="menuitem" data-act="go" data-h="#/e/' + e.id + '/organizer/schedule">Scheduling review</button>' : '<button role="menuitem" data-act="go" data-h="#/e/' + e.id + '/organizer/schedule">Set the dates</button>') +
+          (e.steps.itinerary ? '<button role="menuitem" data-act="go" data-h="#/e/' + e.id + '/organizer/itinerary">Itinerary</button>' : "") +
+          '<button role="menuitem" data-act="go" data-h="#/e/' + e.id + '/organizer/people">People</button></div>';
+      }
+      h += "</div>";
+    }
+    return h + "</div>" + timelineHTML();
+  }
   function eventHTML() {
     var r = S.route;
     if (!S.ev) return '<p class="msg">Loading event…</p>';
     if (S.ev.error) return '<a class="crumb" href="#/">← My events</a><div class="card"><h2>Can\'t open this event</h2><p class="msg err">' + esc(S.ev.error) + "</p></div>";
-    var e = S.ev.event, me = S.ev.me, tab = r.tab;
-    if (tab === "settings" && !me.is_admin) tab = "overview";
-    var when = e.final_start
-      ? '<span><b style="color:var(--fg)">' + esc(fmtSpan(e.final_start, e.final_end)) + "</b></span>"
-      : "<span>Planning · polling " + esc(fmtSpan(e.start_date, e.end_date)) + "</span>";
-    var h = '<a class="crumb" href="#/">← My events</a><div class="ehead"><div style="min-width:0;flex:1">' +
-      "<h1>" + esc(e.title) + '</h1><div class="meta">' + when + "<span>" + esc(fmtBlockAdj(e.block_days)) + " event</span>" +
-      (e.location ? "<span>📍 " + esc(e.location) + "</span>" : "") + "</div>" +
-      (me.can_invite ? '<div class="row"><button class="sm" data-act="copy-link">Copy invite link</button><button class="sm" data-act="invite">Invite people</button></div>' : "") +
-      "</div>" + (me.is_admin ? '<button data-act="go" data-h="#/e/' + e.id + '/settings"' + (tab === "settings" ? ' aria-current="page"' : "") + ">Event settings</button>" : "") + "</div>";
-    h += '<nav class="tabs" aria-label="Event"><a href="#/e/' + e.id + '" class="' + (tab === "overview" ? "on" : "") + '">Overview</a>' +
-      '<a href="#/e/' + e.id + '/availability" class="' + (tab === "availability" ? "on" : "") + '">My availability</a>' +
-      '<a href="#/e/' + e.id + '/summary" class="' + (tab === "summary" ? "on" : "") + '">Group summary</a>' +
-      (tab === "settings" ? '<a href="#/e/' + e.id + '/settings" class="on">Settings</a>' : "") + "</nav>";
-    if (tab === "summary") return h + summaryHTML();
-    if (tab === "availability") return h + respondHTML();
-    if (tab === "settings") return h + settingsHTML();
-    return h + overviewHTML();
+    var me = S.ev.me, tab = r.tab;
+    if ((tab === "settings" || tab === "organizer") && !me.is_admin) tab = "overview";
+    if (tab === "availability") return headerHTML(true) + respondHTML();
+    if (tab === "group") return headerHTML(true) + '<h2 class="pagetitle">Group availability</h2>' + summaryHTML(false);
+    if (tab === "settings") return headerHTML(true) + '<h2 class="pagetitle">Event settings</h2>' + settingsHTML();
+    if (tab === "organizer") return headerHTML(true) + organizerHTML(r.sub);
+    return headerHTML(false) + overviewHTML();
   }
 
+  // ---------- overview ----------
   function promptHTML() {
     var e = S.ev.event, me = S.ev.me;
-    if (e.final_start && me.rsvp !== "no" && !me.attend) {
-      return '<div class="prompt"><h2>The dates are set: ' + esc(fmtSpan(e.final_start, e.final_end)) + "</h2>" +
-        '<p class="sub" style="margin:0 0 12px">Can you make it?</p><div class="row"><button class="primary" data-act="attend" data-v="going">I\'m going</button><button data-act="attend" data-v="not_going">I can\'t make it</button></div></div>';
+    var btns = '<div class="row"><button class="primary" data-act="rsvp" data-v="yes">Yes</button><button data-act="rsvp" data-v="maybe">Not sure</button><button data-act="rsvp" data-v="no">No</button></div>';
+    if (me.needs_confirm) {
+      return '<div class="prompt"><h2>The dates are set: ' + esc(fmtSpan(e.final_start, e.final_end)) + '</h2><p style="margin:4px 0 12px">Are you going?</p>' + btns + "</div>";
     }
-    if (!me.rsvp && !e.final_start) {
-      return '<div class="prompt"><div class="lbl">' + esc(e.owner_name || "The organizer") + " invited you to help plan</div><h2 style=\"font-size:20px\">" + esc(e.title) + "</h2>" +
+    if (!me.rsvp) {
+      return '<div class="prompt"><div class="lbl">' + esc(e.owner_name || "The organizer") + " invited you to help plan</div><h2 style=\"font-size:20px;margin-top:2px\">" + esc(e.title) + "</h2>" +
         (e.invite_message ? "<blockquote>" + esc(e.invite_message) + "</blockquote>" : "") +
-        '<p style="margin:8px 0 12px"><b>Are you planning to go?</b> If yes, you\'ll share which weeks work for you next.</p>' +
-        '<div class="row"><button class="primary" data-act="rsvp" data-v="yes">Yes, I\'m planning to go</button><button data-act="rsvp" data-v="no">No, I can\'t make it</button></div></div>';
+        '<p style="margin:8px 0 12px"><b>' + (e.final_start ? "Are you going on " + esc(fmtSpan(e.final_start, e.final_end)) + "?" : "Are you planning to go?") + "</b>" +
+        (e.steps.availability && !e.final_start ? " If yes or not sure, you'll share which weeks work next." : "") + "</p>" + btns + "</div>";
     }
     return "";
   }
-  function youHTML() {
+  function plansHTML() {
     var e = S.ev.event, me = S.ev.me;
-    var answered = answeredCount(), total = S.weeks.length;
-    var rows = [];
-    rows.push(["Your role", roleLabel(me.role), ""]);
-    rows.push(["Planning to go", me.rsvp === "yes" ? '<span class="v ok">Yes</span>' : me.rsvp === "no" ? '<span class="v no">No</span>' : '<span class="v todo">Not answered</span>',
-      me.rsvp ? '<button class="link" data-act="rsvp" data-v="' + (me.rsvp === "yes" ? "no" : "yes") + '">Change to ' + (me.rsvp === "yes" ? "no" : "yes") + "</button>" : ""]);
-    if (me.rsvp !== "no") {
-      rows.push(["Your availability", me.responded ? '<span class="v ok">' + answered + " of " + total + " weeks</span>" : '<span class="v todo">Not shared yet</span>',
-        '<a href="#/e/' + e.id + '/availability" style="font-size:13px;font-weight:600">' + (me.responded ? "Update" : "Add now") + "</a>"]);
+    var q = e.final_start ? "Going on " + fmtSpan(e.final_start, e.final_end) + "?" : "Planning to go?";
+    var h = '<div class="card"><h2>Your plans</h2>' +
+      '<div class="field" style="margin-bottom:8px"><label class="lbl" for="myrsvp">' + esc(q) + "</label>" +
+      '<select id="myrsvp" data-field="rsvp">' + (me.rsvp ? "" : '<option value="" selected>Choose…</option>') +
+      ["yes", "maybe", "no"].map(function (v) { return '<option value="' + v + '"' + (me.rsvp === v ? " selected" : "") + ">" + (v === "yes" ? "Yes" : v === "maybe" ? "Not sure" : "No") + "</option>"; }).join("") + "</select></div>";
+    if (me.rsvp === "maybe") {
+      h += '<div class="field"><label class="lbl" for="myknow">When do you think you will know?</label><input type="date" id="myknow" data-field="knowby" value="' + esc(me.know_by || "") + '" style="max-width:200px"></div>';
     }
-    if (e.final_start) {
-      rows.push(["Event dates", me.attend === "going" ? '<span class="v ok">Going</span>' : me.attend === "not_going" ? '<span class="v no">Not going</span>' : '<span class="v todo">Please confirm</span>',
-        me.attend ? '<button class="link" data-act="attend" data-v="' + (me.attend === "going" ? "not_going" : "going") + '">Change</button>' : ""]);
+    if (me.needs_confirm) h += '<p class="msg todo-text">The dates changed since you answered. Please confirm.</p>';
+    var links = [];
+    if (e.steps.availability && !e.final_start && me.rsvp !== "no") {
+      links.push(['#/e/' + e.id + '/availability', "Update my availability", me.responded ? answeredCount() + " of " + S.weeks.length + " weeks answered" : "Not shared yet", !me.responded]);
     }
-    rows.push(["Schedule privacy", esc(PRIVACY[e.privacy] ? PRIVACY[e.privacy][0] : ""), ""]);
-    var h = '<div class="card"><h2>You</h2><div class="statuslist">';
-    rows.forEach(function (r) {
-      h += '<div class="st"><div><div class="k">' + r[0] + '</div><div class="v">' + r[1] + "</div></div>" + (r[2] ? "<div>" + r[2] + "</div>" : "") + "</div>";
-    });
-    return h + "</div></div>";
-  }
-  function aboutHTML() {
-    var e = S.ev.event;
-    var h = '<div class="card"><h2>About this event</h2><dl class="kv">' +
-      "<dt>Organizer</dt><dd>" + esc(e.owner_name || "—") + "</dd>" +
-      (e.location ? "<dt>Location</dt><dd>" + esc(e.location) + "</dd>" : "") +
-      "<dt>Dates</dt><dd>" + (e.final_start ? "<b>" + esc(fmtSpan(e.final_start, e.final_end)) + "</b>" : "Not set yet · polling " + esc(fmtSpan(e.start_date, e.end_date))) + "</dd>" +
-      "<dt>Length</dt><dd>" + esc(fmtBlockAdj(e.block_days)) + "</dd></dl>" +
-      (e.description ? '<p style="white-space:pre-line;margin:14px 0 0">' + esc(e.description) + "</p>" : "");
-    if (S.ev.me.is_admin && !e.final_start) {
-      h += '<p class="msg" style="margin-top:14px">When you\'re ready, pick dates from the <a href="#/e/' + e.id + '/summary">group summary</a> or in <a href="#/e/' + e.id + '/settings">settings</a>.</p>';
+    if (e.steps.availability) links.push(['#/e/' + e.id + '/group', "See group availability", me.sees_details ? "Who's free on each day" : "How many people are free each day"]);
+    var h2 = links.map(function (l) {
+      return '<a class="alink' + (l[3] ? " todo" : "") + '" href="' + l[0] + '"><span><b>' + esc(l[1]) + "</b><small>" + esc(l[2]) + '</small></span><span aria-hidden="true">→</span></a>';
+    }).join("");
+    if (me.can_invite) {
+      h2 += '<button class="alink" data-act="invite"><span><b>Invite people</b><small>Add people and send the invite</small></span><span aria-hidden="true">→</span></button>' +
+        '<button class="alink" data-act="copy-link"><span><b>Copy invite link</b><small>Paste it into a group chat</small></span><span aria-hidden="true">⧉</span></button>';
     }
+    if (h2) h += '<div class="alinks">' + h2 + "</div>";
     return h + "</div>";
   }
-  function updatesHTML() {
-    var me = S.ev.me, ups = S.ev.updates || [];
-    var h = '<div class="card"><h2>Updates</h2>';
-    if (me.is_admin) {
-      h += '<form data-form="update" style="margin-bottom:8px"><div class="field" style="margin-bottom:8px"><label class="lbl" for="updbody">Post an update for everyone</label>' +
-        '<textarea id="updbody" name="body" maxlength="4000" placeholder="Share news, plans or reminders" style="min-height:70px"></textarea></div>' +
-        '<button class="primary sm" type="submit">Post update</button></form>';
+  function itineraryList(editable) {
+    var e = S.ev.event, items = S.ev.itinerary || [];
+    var days = e.final_days || e.block_max || 1, maxItemDay = items.reduce(function (m, i) { return Math.max(m, i.day); }, 0);
+    var total = Math.max(days, maxItemDay), h = "";
+    for (var d = 1; d <= total; d++) {
+      var list = items.filter(function (i) { return i.day === d; });
+      if (!list.length && !editable) continue;
+      var date = e.final_start ? fmtShort(d2s(ts(e.final_start) + (d - 1) * DAY)) : "";
+      h += '<div class="iday"><div class="ihead"><b>Day ' + d + "</b>" + (date ? '<span class="lbl">' + esc(date) + "</span>" : "") +
+        (d > days ? '<span class="chip no">Beyond the event length</span>' : "") + "</div>";
+      if (!list.length) h += '<p class="msg" style="margin:0 0 6px">Nothing planned yet.</p>';
+      list.forEach(function (it) {
+        if (editable && S.editItem === it.id) { h += itemForm(it); return; }
+        h += '<div class="item"><span class="itime">' + esc(it.time || "Any time") + '</span><div class="ibody"><b>' + esc(it.title) + "</b>" +
+          (it.location ? '<span class="lbl">📍 ' + esc(it.location) + "</span>" : "") + (it.notes ? '<p>' + esc(it.notes) + "</p>" : "") + "</div>" +
+          (editable ? '<span class="row" style="flex-wrap:nowrap"><button class="sm ghost" data-act="itin-edit" data-id="' + it.id + '">Edit</button><button class="sm ghost danger" data-act="itin-del" data-id="' + it.id + '">Delete</button></span>' : "") + "</div>";
+      });
+      h += "</div>";
     }
-    if (!ups.length) h += '<p class="msg">' + (me.is_admin ? "No updates yet. Posts appear here for everyone in the event." : "No updates from the organizer yet.") + "</p>";
+    return h;
+  }
+  function detailsCardHTML() {
+    var e = S.ev.event, me = S.ev.me, items = S.ev.itinerary || [], ups = S.ev.updates || [];
+    var h = '<div class="card"><h2>Event details</h2><dl class="kv">' +
+      "<dt>Organizer</dt><dd>" + esc(e.owner_name || "—") + "</dd>" +
+      (e.location ? "<dt>Location</dt><dd>" + esc(e.location) + "</dd>" : "") +
+      "<dt>When</dt><dd>" + (e.final_start ? "<b>" + esc(fmtSpan(e.final_start, e.final_end)) + "</b>" : "Dates not set yet · polling " + esc(fmtSpan(e.start_date, e.end_date))) + "</dd>" +
+      "<dt>Length</dt><dd>" + esc(lenText(e)) + "</dd></dl>" +
+      (e.description ? '<p style="white-space:pre-line;margin:14px 0 0">' + esc(e.description) + "</p>" : "");
+    if (e.steps.itinerary && (items.length || me.is_admin)) {
+      h += '<div class="section"><div class="row" style="justify-content:space-between"><h3 class="sh">Itinerary</h3>' +
+        (me.is_admin ? '<a class="sm" href="#/e/' + e.id + '/organizer/itinerary">Edit itinerary</a>' : "") + "</div>" +
+        (items.length ? itineraryList(false) : '<p class="msg">No itinerary yet.</p>') + "</div>";
+    }
+    h += '<div class="section"><h3 class="sh">Updates</h3>';
+    if (me.is_admin) {
+      h += '<form data-form="update" style="margin-bottom:6px"><textarea id="updbody" name="body" maxlength="4000" placeholder="Post an update for everyone: news, plans or reminders" style="min-height:64px" aria-label="Post an update"></textarea>' +
+        '<button class="primary sm" type="submit" style="margin-top:8px">Post update</button></form>';
+    }
+    if (!ups.length) h += '<p class="msg">' + (me.is_admin ? "No updates yet." : "No updates from the organizer yet.") + "</p>";
     ups.forEach(function (u) {
       h += '<div class="upd"><div class="by"><b style="color:var(--fg)">' + esc(u.author) + "</b><span>" + esc(ago(u.created_at)) + "</span>" +
         (u.can_delete ? '<button class="link" style="margin-left:auto" data-act="upd-del" data-id="' + esc(u.id) + '">Remove</button>' : "") + "</div><p>" + esc(u.body) + "</p></div>";
     });
+    h += '</div><div class="section"><h3 class="sh">Who\'s in</h3>' + whosInHTML() + "</div>";
     return h + "</div>";
   }
   function overviewHTML() {
-    return promptHTML() + msgHTML() + '<div class="dash"><div>' + aboutHTML() + updatesHTML() + "</div><div>" + youHTML() + whosInHTML() + "</div></div>";
+    return promptHTML() + msgHTML() + '<div class="dash"><div>' + detailsCardHTML() + "</div><div>" + plansHTML() + "</div></div>";
   }
 
   // ---------- my availability ----------
@@ -776,11 +909,13 @@ i.st-none{background:var(--none)}
     return '<div class="legend">' + STATUS.map(function (s) { return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>"; }).join("") + '<span><i class="st-none"></i>Not answered</span></div>';
   }
   function respondHTML() {
-    var me = S.ev.me;
+    var e = S.ev.event, me = S.ev.me;
+    var h = '<h2 class="pagetitle">My availability</h2>';
+    if (!e.steps.availability) return h + '<div class="card narrow"><p class="msg" style="margin:0">This event isn\'t collecting availability.</p></div>';
+    if (e.final_start) return h + '<div class="card narrow"><p class="msg" style="margin:0">The dates are already set: ' + esc(fmtSpan(e.final_start, e.final_end)) + ".</p></div>";
     if (me.rsvp === "no") {
-      return msgHTML() + '<div class="card narrow"><h2>You said you can\'t make it</h2><p class="sub">You don\'t need to share availability. Changed your mind?</p><button class="primary" data-act="rsvp" data-v="yes">I\'m planning to go after all</button></div>';
+      return h + msgHTML() + '<div class="card narrow"><h2>You said you\'re not going</h2><p class="sub">You don\'t need to share availability. Changed your mind?</p><button class="primary" data-act="rsvp" data-v="yes">I\'m planning to go after all</button></div>';
     }
-    var h = me.rsvp ? "" : promptHTML();
     h += '<p class="sub">Set each week, or set a whole month and change any week that differs. For Set days, tap the days you\'re free.</p>' + legendHTML() + '<div class="months">';
     S.cal.forEach(function (m) { h += respondMonth(m); });
     h += "</div>";
@@ -788,7 +923,7 @@ i.st-none{background:var(--none)}
       '<button class="primary" data-act="save"' + (S.saving ? " disabled" : "") + ">" + (S.saving ? "Saving…" : "Save my availability") + "</button>" + msgHTML() + "</div>";
   }
 
-  // ---------- group summary ----------
+  // ---------- group availability / scheduling review ----------
   function stateOn(weeks, wk, di) {
     var a = weeks && weeks[wk];
     if (!a || !a.s) return "none";
@@ -799,13 +934,11 @@ i.st-none{background:var(--none)}
     return "none";
   }
   function participants() { return people().filter(function (p) { return p.rsvp !== "no"; }); }
-  // Per-day lists: named people plus counts of private (anonymous) schedules.
   function dayStats(wk, di) {
     var st = { free: [], busy: [], tent: [], none: [], anon: { free: 0, busy: 0, tent: 0, none: 0 } };
     var withSched = {};
     S.ev.schedules.forEach(function (s) {
-      var k = stateOn(s.weeks, wk, di);
-      var p = s.pid && personBy(s.pid);
+      var k = stateOn(s.weeks, wk, di), p = s.pid && personBy(s.pid);
       if (p) { withSched[s.pid] = 1; st[k].push(p); } else st.anon[k]++;
     });
     participants().forEach(function (p) { if (!p.responded && !withSched[p.pid]) st.none.push(p); });
@@ -826,9 +959,13 @@ i.st-none{background:var(--none)}
     if (x.mode === "range" && x.from && x.to && x.from <= x.to) return [x.from < e.start_date ? e.start_date : x.from, x.to > e.end_date ? e.end_date : x.to];
     return [e.start_date, e.end_date];
   }
+  function curLen() {
+    var e = S.ev.event, a = +e.block_min || 1, b = +e.block_max || a, L = +S.ex.len || a;
+    return Math.min(Math.max(L, a), b);
+  }
   function windowsIn(range, max) {
     var days = allDays().filter(function (d) { return d.iso >= range[0] && d.iso <= range[1]; });
-    var L = Math.max(1, +S.ev.event.block_days || 1);
+    var L = curLen();
     if (!S.ev.schedules.length || days.length < L) return { list: [], days: days.length, L: L };
     var cand = [];
     for (var i = 0; i + L <= days.length; i++) {
@@ -862,11 +999,18 @@ i.st-none{background:var(--none)}
     if (anon) named.push(anon + (anon === 1 ? " person" : " people") + (named.length ? " more" : ""));
     return named.join(", ");
   }
-  function explorerHTML() {
-    var e = S.ev.event, me = S.ev.me, x = S.ex, range = exRange(), res = windowsIn(range, 5);
-    var h = '<div class="card"><h2 style="margin-bottom:2px">Best ' + esc(fmtBlockAdj(e.block_days)) + " windows</h2>" +
-      '<p class="msg" style="margin:0 0 12px">Ranked by fewest people busy or still unanswered. Pick a month or dates to look closer, and click a window to see it on the calendar.</p>';
-    h += '<div class="seg" role="group" aria-label="Look at"><button data-act="ex" data-mode="all" aria-pressed="' + (x.mode === "all") + '">Whole period</button>';
+  function explorerHTML(organizer) {
+    var e = S.ev.event, x = S.ex, range = exRange(), res = windowsIn(range, 5), L = curLen();
+    var a = +e.block_min || 1, b = +e.block_max || a;
+    var h = '<div class="card"><h2 style="margin-bottom:2px">Best ' + esc(fmtBlockAdj(L)) + " windows</h2>" +
+      '<p class="msg" style="margin:0 0 12px">Ranked by fewest people busy or still unanswered. Click a window to see it on the calendar.</p>';
+    if (a !== b && !e.final_start) {
+      h += '<div class="seg" role="group" aria-label="Event length"><span class="lbl" style="align-self:center;margin-right:2px">Length</span>';
+      if (b - a <= 9) for (var n = a; n <= b; n++) h += '<button data-act="exlen" data-v="' + n + '" aria-pressed="' + (n === L) + '">' + esc(fmtLen(n)) + "</button>";
+      else h += '<input type="number" data-field="exlen" min="' + a + '" max="' + b + '" value="' + L + '" style="width:90px"> <span class="lbl" style="align-self:center">days (' + a + "–" + b + ")</span>";
+      h += "</div>";
+    }
+    h += '<div class="seg" role="group" aria-label="Look at"><span class="lbl" style="align-self:center;margin-right:2px">Dates</span><button data-act="ex" data-mode="all" aria-pressed="' + (x.mode === "all") + '">Whole period</button>';
     S.cal.forEach(function (m) { h += '<button data-act="ex" data-mode="month" data-m="' + m.key + '" aria-pressed="' + (x.mode === "month" && x.month === m.key) + '">' + esc(m.label) + "</button>"; });
     h += '<button data-act="ex" data-mode="range" aria-pressed="' + (x.mode === "range") + '">Custom dates</button></div>';
     if (x.mode === "range") {
@@ -874,17 +1018,17 @@ i.st-none{background:var(--none)}
         '<label class="tdate"><span class="lbl">To</span><input type="date" data-field="exto" min="' + e.start_date + '" max="' + e.end_date + '" value="' + esc(x.to || e.end_date) + '"></label></div>';
     }
     if (!S.ev.schedules.length) h += '<p class="msg">Windows appear once people share their availability.</p>';
-    else if (!res.list.length) h += '<p class="msg">This range is shorter than the ' + esc(fmtBlockAdj(e.block_days)) + " event.</p>";
+    else if (!res.list.length) h += '<p class="msg">This range is shorter than a ' + esc(fmtBlockAdj(L)) + " event.</p>";
     else {
       h += '<div class="wins">' + res.list.map(function (w) {
         var parts = [];
         if (w.nb) parts.push(w.nb + " busy: " + whoText(w.busy));
         if (w.nt) parts.push(w.nt + " not sure: " + whoText(w.tent));
         if (w.nu) parts.push(w.nu + " haven't answered: " + whoText(w.unk));
-        var on = S.hl && S.hl.start === w.start;
+        var on = S.hl && S.hl.start === w.start && S.hl.end === w.end;
         return '<div class="win' + (on ? " on" : "") + '"><button class="main" data-act="hl" data-s="' + w.start + '" data-e="' + w.end + '" aria-pressed="' + !!on + '"><span class="r">' +
           esc(fmtSpan(w.start, w.end)) + '</span><span class="s">' + (parts.length ? esc(parts.join(" · ")) : "Everyone who shared availability is free") + "</span></button>" +
-          (me.is_admin ? '<button class="set" data-act="sched-set" data-s="' + w.start + '" data-e="' + w.end + '">Set as dates</button>' : "") + "</div>";
+          (organizer ? '<button class="set" data-act="sched-set" data-s="' + w.start + '" data-e="' + w.end + '">Set as dates</button>' : "") + "</div>";
       }).join("") + "</div>";
     }
     return h + "</div>";
@@ -918,11 +1062,9 @@ i.st-none{background:var(--none)}
     }
     return h + "</tbody></table></div></div>";
   }
-  function summaryHTML() {
+  function calendarHTML() {
     var e = S.ev.event, range = exRange();
-    var h = msgHTML() + (S.ev.me.sees_details ? "" : '<p class="msg" style="margin:0 0 12px">This event shares totals only. You can see how many people are busy each day, but not who.</p>') +
-      '<div class="dash"><div>' + explorerHTML() + "</div><div>" + breakdownHTML() + "</div></div>";
-    h += '<div class="legend"><span><i style="background:color-mix(in srgb,var(--free) 52%,var(--card))"></i>Everyone free</span>' +
+    var h = '<div class="legend"><span><i style="background:color-mix(in srgb,var(--free) 52%,var(--card))"></i>Everyone free</span>' +
       '<span><i style="background:color-mix(in srgb,var(--free) 26%,var(--card))"></i>No conflicts (some unanswered)</span>' +
       '<span><i class="st-na"></i>Conflicts · number = people busy</span><span><i class="st-tentative"></i>Someone not sure</span>' +
       '<span><i class="st-none"></i>No answers</span>' + (e.final_start ? '<span><i style="background:var(--accent)"></i>Event dates</span>' : "") +
@@ -953,6 +1095,11 @@ i.st-none{background:var(--none)}
     });
     return h + "</div>";
   }
+  function summaryHTML(organizer) {
+    if (!S.ev.event.steps.availability) return '<div class="card"><p class="msg" style="margin:0">This event isn\'t collecting availability.</p></div>';
+    return msgHTML() + (S.ev.me.sees_details ? "" : '<p class="msg" style="margin:0 0 12px">This event shares totals only. You can see how many people are busy each day, but not who.</p>') +
+      '<div class="dash"><div>' + explorerHTML(organizer) + "</div><div>" + breakdownHTML() + "</div></div>" + calendarHTML();
+  }
   function tipHTML(wk, di, iso) {
     var st = dayStats(wk, di);
     var grp = function (title, list, n, extra) {
@@ -978,35 +1125,94 @@ i.st-none{background:var(--none)}
   }
   function hideTip() { tip.hidden = true; }
 
-  // ---------- settings ----------
-  function settingsHTML() {
-    var e = S.ev.event, me = S.ev.me;
-    var h = msgHTML() + '<div class="dash"><div>' +
-      '<form data-form="settings"><div class="card"><h2>Details</h2>' + detailsFields(e) + "</div>" +
-      '<div class="card"><h2>Sharing &amp; privacy</h2>' + sharingFields(e) +
-      '<div class="field"><label class="lbl" for="smsg">Invite message</label><textarea id="smsg" name="invite_message" maxlength="1000" placeholder="Shown to people when they open the invite">' + esc(e.invite_message || "") + "</textarea></div></div>" +
-      '<div class="row" style="margin-bottom:14px"><button class="primary" type="submit"' + (S.saving ? " disabled" : "") + ">Save settings</button></div></form>";
-    h += '<div class="card"><h2>Event dates</h2><p class="msg" style="margin:-6px 0 12px">Set the final dates once you\'ve picked a window. Everyone will be asked to confirm.</p>' +
+  // ---------- organizer ----------
+  function subnavHTML(sub) {
+    var e = S.ev.event, base = "#/e/" + e.id + "/organizer";
+    var items = [["checklist", "Checklist", base], ["schedule", e.steps.availability ? "Scheduling review" : "Set the dates", base + "/schedule"]];
+    if (e.steps.itinerary) items.push(["itinerary", "Itinerary", base + "/itinerary"]);
+    items.push(["people", "People", base + "/people"]);
+    return '<nav class="subnav" aria-label="Organizer">' + items.map(function (i) { return '<a href="' + i[2] + '" class="' + (sub === i[0] ? "on" : "") + '">' + i[1] + "</a>"; }).join("") + "</nav>";
+  }
+  function organizerHTML(sub) {
+    var h = '<h2 class="pagetitle">Organizer</h2>' + subnavHTML(sub) + msgHTML();
+    if (sub === "schedule") return h + scheduleHTML();
+    if (sub === "itinerary") return h + itineraryHTML();
+    if (sub === "people") return h + peopleHTML();
+    return h + checklistHTML();
+  }
+  function counts() {
+    var ps = people(), c = { total: ps.length, yes: 0, maybe: 0, no: 0, none: 0, confirm: 0, shared: 0 };
+    ps.forEach(function (p) { c[statusOf(p)]++; if (p.responded && p.rsvp !== "no") c.shared++; });
+    return c;
+  }
+  function checklistHTML() {
+    var e = S.ev.event, c = counts(), cur = stageKey(e), items = S.ev.itinerary || [], base = "#/e/" + e.id;
+    var inPlay = c.total - c.no;
+    var rows = [];
+    rows.push({ key: "define", t: "Define the event", d: lenText(e) + " · polling " + fmtSpan(e.start_date, e.end_date) + (e.location ? " · " + e.location : ""), a: [["Event settings", base + "/settings"]] });
+    rows.push({ key: "invite", t: "Invite people", d: (c.total - 1) + " invited · " + (c.total - c.none) + " replied (" + c.yes + " going, " + c.maybe + " not sure, " + c.no + " not going)", a: [["Invite people", "invite"], ["People", base + "/organizer/people"]] });
+    if (e.steps.availability) rows.push({ key: "dates", t: "Find possible dates", d: c.shared + " of " + inPlay + " shared availability", a: [["Scheduling review", base + "/organizer/schedule"]] });
+    if (e.steps.itinerary) rows.push({ key: "itinerary", t: "Plan the itinerary", d: items.length ? items.length + " item" + (items.length === 1 ? "" : "s") + " planned" : "Nothing planned yet", a: [["Itinerary", base + "/organizer/itinerary"]] });
+    rows.push({ key: "set", t: "Set the dates", d: e.final_start ? fmtSpan(e.final_start, e.final_end) + " · " + c.yes + " going, " + c.confirm + " still to confirm" : "Not set yet", a: [[e.final_start ? "Change dates" : "Set the dates", base + "/organizer/schedule"]] });
+    var list = stepsFor(e), ci = list.findIndex(function (s) { return s.key === cur; });
+    var h = '<div class="checklist">';
+    rows.forEach(function (r, i) {
+      var state = r.key === "define" || i < ci ? "done" : i === ci ? "now" : "next";
+      h += '<div class="ck ' + state + '"><span class="dot" aria-hidden="true">' + (state === "done" ? "✓" : i + 1) + '</span><div class="ckb"><b>' + esc(r.t) + "</b>" +
+        (state === "now" ? ' <span class="chip acc">Current step</span>' : "") + '<p class="msg" style="margin:2px 0 8px">' + esc(r.d) + '</p><div class="row">' +
+        r.a.map(function (a) { return a[1] === "invite" ? '<button class="sm" data-act="invite">' + a[0] + "</button>" : '<a class="btn sm" href="' + a[1] + '">' + a[0] + "</a>"; }).join("") +
+        (["invite", "dates", "itinerary"].indexOf(r.key) >= 0 && state !== "now" && !e.final_start ? '<button class="sm ghost" data-act="stage" data-v="' + r.key + '">Make current step</button>' : "") +
+        "</div></div></div>";
+    });
+    return h + "</div>";
+  }
+  function scheduleHTML() {
+    var e = S.ev.event;
+    var h = '<div class="card"><h2>Event dates</h2><p class="msg" style="margin:-6px 0 12px">' +
+      (e.final_start ? "The dates are set. Changing them asks everyone to confirm again." : "Pick a window below, or enter dates yourself. Setting dates fixes the event length and asks everyone to confirm.") + "</p>" +
       '<form data-form="schedule" class="row"><label class="tdate"><span class="lbl">Start</span><input type="date" name="final_start" required value="' + esc(e.final_start || "") + '"></label>' +
       '<label class="tdate"><span class="lbl">End</span><input type="date" name="final_end" required value="' + esc(e.final_end || "") + '"></label>' +
       '<button class="primary sm" type="submit">' + (e.final_start ? "Update dates" : "Set dates") + "</button>" +
       (e.final_start ? '<button type="button" class="sm" data-act="sched-clear">Back to planning</button>' : "") + "</form></div>";
-    if (me.is_owner) {
-      h += '<div class="card"><h2>Delete event</h2><p class="msg" style="margin:-6px 0 12px">Removes the event, its updates and everyone\'s answers. This can\'t be undone.</p>' +
-        (S.ask === "delete" ? '<div class="row"><button class="danger" data-act="delete">Yes, delete it</button><button data-act="ask" data-v="">Keep it</button></div>'
-          : '<button class="danger" data-act="ask" data-v="delete">Delete event…</button>') + "</div>";
-    }
-    h += "</div><div>" + membersHTML() + "</div></div>";
-    return h;
+    if (!e.steps.availability) return h;
+    return h + summaryHTML(true);
   }
-  function membersHTML() {
-    var ps = people();
-    var h = '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">People · ' + ps.length + "</h2>" +
-      '<button class="sm" data-act="invite">Invite people</button></div><div>';
-    ps.forEach(function (p) {
-      var key = p.email || "";
-      var status = S.ev.event.final_start ? (p.attend === "going" ? "Going" : p.attend === "not_going" || p.rsvp === "no" ? "Not going" : "Waiting to confirm")
-        : (p.rsvp === "yes" ? (p.responded ? "Planning to go · availability shared" : "Planning to go") : p.rsvp === "no" ? "Not going" : p.pending ? "Invited · not signed in yet" : "Hasn't replied");
+  function itemForm(it) {
+    var e = S.ev.event, days = Math.max(e.final_days || e.block_max || 1, it ? it.day : 1), isNew = !it;
+    it = it || { day: S.lastDay || 1, time: "", title: "", location: "", notes: "" };
+    var dayOpts = ""; for (var d = 1; d <= days; d++) dayOpts += '<option value="' + d + '"' + (it.day === d ? " selected" : "") + ">Day " + d + (e.final_start ? " · " + fmtShort(d2s(ts(e.final_start) + (d - 1) * DAY)) : "") + "</option>";
+    return '<form data-form="itin" data-id="' + (isNew ? "" : it.id) + '" class="iform">' +
+      '<div class="grid2"><div class="field"><label class="lbl">Day</label><select name="day">' + dayOpts + "</select></div>" +
+      '<div class="field"><label class="lbl">Time (optional)</label><input type="time" name="time" value="' + esc(it.time) + '"></div></div>' +
+      '<div class="field"><label class="lbl">What</label><input name="title" required maxlength="200" placeholder="Arrive and check in, ski lessons, group dinner…" value="' + esc(it.title) + '"></div>' +
+      '<div class="grid2"><div class="field"><label class="lbl">Where (optional)</label><input name="location" maxlength="200" value="' + esc(it.location) + '"></div>' +
+      '<div class="field"><label class="lbl">Notes (optional)</label><input name="notes" maxlength="1000" value="' + esc(it.notes) + '"></div></div>' +
+      '<div class="row"><button class="primary sm" type="submit">' + (isNew ? "Add to itinerary" : "Save item") + "</button>" + (isNew ? "" : '<button type="button" class="sm" data-act="itin-cancel">Cancel</button>') + "</div></form>";
+  }
+  function itineraryHTML() {
+    var e = S.ev.event;
+    if (!e.steps.itinerary) return '<div class="card"><p class="msg" style="margin:0">The itinerary step is turned off. Turn it on in Event settings.</p></div>';
+    return '<div class="dash"><div><div class="card"><h2>' + (e.final_start ? "Itinerary · " + esc(fmtSpan(e.final_start, e.final_end)) : "Itinerary · Day 1 to Day " + (e.block_max || 1)) + "</h2>" +
+      (e.final_start ? "" : '<p class="msg" style="margin:-6px 0 12px">Plan by day number. Once you set the dates, each day shows its real date.</p>') +
+      itineraryList(true) + '</div></div><div><div class="card"><h2>Add an item</h2>' + itemForm(null) + "</div></div></div>";
+  }
+  function peopleHTML() {
+    var ps = people(), f = S.pfilter || "all", e = S.ev.event;
+    var filters = [["all", "Everyone"], ["yes", "Going"]].concat(e.final_start ? [["confirm", "Needs to confirm"]] : [])
+      .concat([["maybe", "Not sure"], ["none", "No reply"], ["no", "Not going"], ["org", "Organizers"]]);
+    var match = function (p) { return f === "all" || (f === "org" ? p.role !== "guest" : statusOf(p) === f); };
+    var h = '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">People · ' + ps.length + "</h2>" +
+      '<div class="row"><button class="sm" data-act="copy-link">Copy invite link</button><button class="primary sm" data-act="invite">Invite people</button></div></div>' +
+      '<div class="seg" role="group" aria-label="Filter">' + filters.map(function (x) {
+        var n = ps.filter(function (p) { return x[0] === "all" || (x[0] === "org" ? p.role !== "guest" : statusOf(p) === x[0]); }).length;
+        return '<button data-act="pfilter" data-v="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + " · " + n + "</button>";
+      }).join("") + "</div><div>";
+    var shown = ps.filter(match);
+    if (!shown.length) h += '<p class="msg">Nobody here.</p>';
+    shown.forEach(function (p) {
+      var key = p.email || "", st = statusOf(p);
+      var status = st === "confirm" ? "Needs to confirm the dates" : st === "maybe" ? "Not sure" + (p.know_by ? " · knows by " + fmtDate(p.know_by) : "") : st === "none" ? (p.pending ? "Invited · not signed in yet" : "Hasn't replied") : rsvpWord(p.rsvp);
+      if (e.steps.availability && !e.final_start && p.rsvp !== "no") status += p.responded ? " · availability shared" : " · no availability yet";
       h += '<div class="mrow"><div class="who"><b>' + esc(p.name) + (p.me ? " (you)" : "") + "</b><span>" + esc(p.email && p.email !== p.name ? p.email + " · " : "") + esc(status) + "</span></div>";
       if (p.role === "owner") h += '<span class="chip acc">Organizer</span><span></span>';
       else if (!key) h += '<span class="chip">' + roleLabel(p.role) + "</span><span></span>";
@@ -1018,7 +1224,25 @@ i.st-none{background:var(--none)}
       }
       h += "</div>";
     });
-    return h + '</div><p class="msg">Co-organizers can edit the event, manage people, post updates and set the dates.</p></div>';
+    return h + '</div><p class="msg">Co-organizers can edit the event, manage people, post updates, build the itinerary and set the dates.</p></div>';
+  }
+
+  // ---------- event settings (setup) ----------
+  function settingsHTML() {
+    var e = S.ev.event, me = S.ev.me;
+    var h = msgHTML() + '<form data-form="settings"><div class="dash"><div>' +
+      '<div class="card"><h2>Details</h2>' + detailsFields(e) + "</div>" +
+      '<div class="card"><h2>When</h2>' + whenFields(e) + (e.final_start ? '<p class="msg">The event dates are set to ' + esc(fmtSpan(e.final_start, e.final_end)) + '. Change them in <a href="#/e/' + e.id + '/organizer/schedule">Scheduling review</a>.</p>' : "") + "</div>" +
+      '<div class="card"><h2>Plan</h2>' + stepsFields(e) + "</div></div><div>" +
+      '<div class="card"><h2>Sharing &amp; privacy</h2>' + sharingFields(e) +
+      '<div class="field"><label class="lbl" for="smsg">Invite message</label><textarea id="smsg" name="invite_message" maxlength="1000" placeholder="Shown to people when they open the invite">' + esc(e.invite_message || "") + "</textarea></div></div>" +
+      '<button class="primary" type="submit"' + (S.saving ? " disabled" : "") + ">Save settings</button></div></div></form>";
+    if (me.is_owner) {
+      h += '<div class="card" style="margin-top:14px"><h2>Delete event</h2><p class="msg" style="margin:-6px 0 12px">Removes the event, its updates, itinerary and everyone\'s answers. This can\'t be undone.</p>' +
+        (S.ask === "delete" ? '<div class="row"><button class="danger" data-act="delete">Yes, delete it</button><button data-act="ask" data-v="">Keep it</button></div>'
+          : '<button class="danger" data-act="ask" data-v="delete">Delete event…</button>') + "</div>";
+    }
+    return h;
   }
 
   // ---------- invite picker ----------
@@ -1126,7 +1350,7 @@ i.st-none{background:var(--none)}
     if (e.description) lines.push("", e.description);
     lines.push("");
     if (e.location) lines.push("Where: " + e.location);
-    lines.push(e.final_start ? "When: " + fmtSpan(e.final_start, e.final_end) : "We're picking dates between " + fmtSpan(e.start_date, e.end_date) + " (" + fmtBlockAdj(e.block_days) + " event).");
+    lines.push(e.final_start ? "When: " + fmtSpan(e.final_start, e.final_end) : "We're picking dates between " + fmtSpan(e.start_date, e.end_date) + " (" + lenText(e) + ").");
     lines.push("", "Respond here: " + inviteLink());
     return lines.join("\n");
   }
@@ -1225,18 +1449,31 @@ i.st-none{background:var(--none)}
     S.dirty = true; S.msg = ""; render();
     var again = app.querySelector('button[data-act="day"][data-w="' + w + '"][data-i="' + i + '"]'); if (again) again.focus();
   }
-  function refreshEvent(msg) {
-    return loadEvent(S.ev.event.id, true).then(function () { if (msg) { S.msg = msg; S.msgErr = false; render(); } });
+  function refreshEvent(msg, isErr) {
+    return loadEvent(S.ev.event.id, true).then(function () { if (msg) { S.msg = msg; S.msgErr = !!isErr; render(); } });
   }
   function copy(text, btn, label) {
-    var done = function () { if (btn) { var t = btn.textContent; btn.textContent = label || "Copied"; setTimeout(function () { btn.textContent = t; }, 1600); } };
+    var done = function () {
+      if (!btn) return;
+      var b = btn.querySelector("b") || btn, t = b.textContent;
+      b.textContent = label || "Copied"; setTimeout(function () { b.textContent = t; }, 1600);
+    };
     if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { window.prompt("Copy this:", text); });
     else window.prompt("Copy this:", text);
+  }
+  function setRsvp(v, knowBy) {
+    var e = S.ev.event, was = S.ev.me.rsvp;
+    return act("rsvp", { rsvp: v, know_by: knowBy || "" }).then(function () {
+      return refreshEvent(v === "no" ? "Got it. The organizer will see that you're not going." : v === "maybe" ? "Noted. Add a date for when you'll know, if you can." : "");
+    }).then(function () {
+      if (v !== "no" && !was && e.steps.availability && !e.final_start && !S.ev.me.responded) nav("#/e/" + e.id + "/availability");
+    }, showErr);
   }
 
   document.addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest("[data-act]") : null;
     if (S.menu && !(e.target.closest && e.target.closest(".menu, [data-act=menu]"))) { S.menu = false; render(); }
+    if (S.omenu && !(e.target.closest && e.target.closest(".menu, [data-act=omenu]"))) { S.omenu = false; render(); }
     if (!b || b.disabled) {
       if (S.sel && !(e.target.closest && e.target.closest(".sd"))) { S.sel = null; hideTip(); render(); }
       return;
@@ -1245,6 +1482,7 @@ i.st-none{background:var(--none)}
     if (a === "signin") C.openSignIn({ forceRedirectUrl: location.href, signUpForceRedirectUrl: location.href });
     else if (a === "signout") C.signOut().then(function () { location.hash = "#/"; location.reload(); });
     else if (a === "menu") { S.menu = !S.menu; render(); }
+    else if (a === "omenu") { S.omenu = !S.omenu; render(); }
     else if (a === "clerkprofile") { S.menu = false; render(); C.openUserProfile(); }
     else if (a === "go") nav(b.getAttribute("data-h"));
     else if (a === "save") saveResponse();
@@ -1263,27 +1501,24 @@ i.st-none{background:var(--none)}
         PK.invite.list = []; drawChips("invite"); drawInviteActions(list);
         line.className = "msg ok"; line.textContent = "Added " + list.length + (list.length === 1 ? " person" : " people") + ". Now send the invite: Email invite opens your mail app with them in BCC, or Copy invite for a chat.";
         if (m) S.ev.event.invite_message = m.value;
-        api("/api/event?id=" + encodeURIComponent(S.ev.event.id)).then(function (d) { S.ev.people = d.people; S.ev.event = d.event; if (!modalRoot.innerHTML) render(); else app.innerHTML = eventHTML(); });
+        api("/api/event?id=" + encodeURIComponent(S.ev.event.id)).then(function (d) { S.ev.people = d.people; S.ev.event = d.event; app.innerHTML = eventHTML(); });
       }, function (err) { b.disabled = false; line.className = "msg err"; line.textContent = err.message; });
     }
-    else if (a === "rsvp") {
-      var v = b.getAttribute("data-v");
-      act("rsvp", { rsvp: v }).then(function () {
-        return refreshEvent(v === "no" ? "Got it. The organizer will see that you can't make it." : "");
-      }).then(function () { if (v === "yes" && !S.ev.me.responded) nav("#/e/" + S.ev.event.id + "/availability"); }, showErr);
-    }
-    else if (a === "attend") {
-      var av = b.getAttribute("data-v");
-      act("attend", { attend: av }).then(function () { return refreshEvent(av === "going" ? "See you there!" : "Thanks for letting everyone know."); }, showErr);
-    }
-    else if (a === "ex") { S.ex = { mode: b.getAttribute("data-mode"), month: b.getAttribute("data-m"), from: S.ex.from, to: S.ex.to }; S.hl = null; render(); }
-    else if (a === "hl") { var s = b.getAttribute("data-s"); S.hl = S.hl && S.hl.start === s ? null : { start: s, end: b.getAttribute("data-e") }; render(); }
+    else if (a === "rsvp") setRsvp(b.getAttribute("data-v"));
+    else if (a === "stage") { var sv = b.getAttribute("data-v"), sl = (STEPS.find(function (x) { return x.key === sv; }) || {}).label; act("stage", { stage: sv }).then(function () { return refreshEvent("Current step: " + sl + "."); }, showErr); }
+    else if (a === "ex") { S.ex = { mode: b.getAttribute("data-mode"), month: b.getAttribute("data-m"), from: S.ex.from, to: S.ex.to, len: S.ex.len }; S.hl = null; render(); }
+    else if (a === "exlen") { S.ex.len = +b.getAttribute("data-v"); S.hl = null; render(); }
+    else if (a === "hl") { var s = b.getAttribute("data-s"), en = b.getAttribute("data-e"); S.hl = S.hl && S.hl.start === s && S.hl.end === en ? null : { start: s, end: en }; render(); }
     else if (a === "sched-set") {
       var ss = b.getAttribute("data-s"), se = b.getAttribute("data-e");
       act("schedule", { final_start: ss, final_end: se }).then(function () { return refreshEvent("Event dates set to " + fmtSpan(ss, se) + ". Everyone will be asked to confirm."); }, showErr);
     }
     else if (a === "sched-clear") act("schedule", { clear: true }).then(function () { return refreshEvent("Back to planning. The dates were cleared."); }, showErr);
     else if (a === "upd-del") act("delete_update", { update_id: b.getAttribute("data-id") }).then(function () { return refreshEvent(); }, showErr);
+    else if (a === "itin-edit") { S.editItem = b.getAttribute("data-id"); render(); }
+    else if (a === "itin-cancel") { S.editItem = null; render(); }
+    else if (a === "itin-del") act("itin_delete", { item_id: b.getAttribute("data-id") }).then(function () { return refreshEvent("Item removed."); }, showErr);
+    else if (a === "pfilter") { S.pfilter = b.getAttribute("data-v"); render(); }
     else if (a === "mem-rm") { var em = b.getAttribute("data-email"); S.ask = null; act("member_remove", { email: em }).then(function () { return refreshEvent("Removed " + em + "."); }, showErr); }
     else if (a === "dayinfo") {
       S.sel = S.sel === b.getAttribute("data-iso") ? null : b.getAttribute("data-iso");
@@ -1305,7 +1540,7 @@ i.st-none{background:var(--none)}
     if (e.key !== "Escape") return;
     hideTip(); S.sel = null;
     if (modalRoot.innerHTML) closeModal();
-    if (S.menu) { S.menu = false; render(); }
+    if (S.menu || S.omenu) { S.menu = false; S.omenu = false; render(); }
   });
 
   app.addEventListener("submit", function (e) {
@@ -1330,14 +1565,18 @@ i.st-none{background:var(--none)}
       S.saving = true;
       api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "PUT", sb).then(function () {
         S.saving = false;
-        return loadEvent(S.ev.event.id, true).then(function () { S.msg = "Settings saved."; S.msgErr = false; render(); });
-      }, function (err) { S.saving = false; showErr(err); });
+        return loadEvent(S.ev.event.id, true).then(function () { S.ex.len = null; S.msg = "Settings saved."; S.msgErr = false; render(); window.scrollTo(0, 0); });
+      }, function (err) { S.saving = false; showErr(err); window.scrollTo(0, 0); });
     } else if (kind === "schedule") {
       act("schedule", { final_start: f.final_start.value, final_end: f.final_end.value })
         .then(function () { return refreshEvent("Event dates saved. Everyone will be asked to confirm."); }, showErr);
     } else if (kind === "update") {
       var text = f.body.value.trim(); if (!text) return;
       act("post_update", { body: text }).then(function () { return refreshEvent(); }, showErr);
+    } else if (kind === "itin") {
+      var iid = f.getAttribute("data-id"), item = { item_id: iid, day: +f.day.value, time: f.time.value, title: f.title.value, location: f.location.value, notes: f.notes.value };
+      S.lastDay = item.day;
+      act(iid ? "itin_update" : "itin_add", item).then(function () { S.editItem = null; return refreshEvent(iid ? "Item saved." : "Added to Day " + item.day + "."); }, showErr);
     }
   });
 
@@ -1374,6 +1613,12 @@ i.st-none{background:var(--none)}
       S.dirty = true; S.msg = ""; render();
     } else if (f === "exfrom" || f === "exto") {
       S.ex[f === "exfrom" ? "from" : "to"] = el.value; S.hl = null; render();
+    } else if (f === "exlen") {
+      S.ex.len = +el.value; S.hl = null; render();
+    } else if (f === "rsvp") {
+      if (el.value) setRsvp(el.value, el.value === "maybe" ? S.ev.me.know_by : "");
+    } else if (f === "knowby") {
+      setRsvp("maybe", el.value);
     } else if (f === "role") {
       var email = el.getAttribute("data-email");
       act("member_role", { email: email, role: el.value }).then(function () { return refreshEvent(el.value === "admin" ? "Made " + email + " a co-organizer." : "Changed " + email + " to guest."); }, showErr);

@@ -6,7 +6,7 @@ Plan events around everyone's schedule. Sign in with Google (via Clerk), create 
 
 | Piece | What it does |
 |---|---|
-| `index.html` | The whole front end. Hash routes: `#/` (My events), `#/new`, `#/account`, `#/e/<id>` (overview), `#/e/<id>/availability`, `#/e/<id>/summary`, `#/e/<id>/settings`. |
+| `index.html` | The whole front end. Hash routes: `#/` (My events), `#/new`, `#/account`, `#/e/<id>` (event), `#/e/<id>/availability`, `#/e/<id>/group`, `#/e/<id>/settings`, `#/e/<id>/organizer[/schedule|/itinerary|/people]`. |
 | `api/config.js` | `GET` returns the Clerk publishable key. |
 | `api/me.js` | `GET`/`PUT` your display name (asked on first sign-in, defaulting to your Google name). |
 | `api/events.js` | `GET` events you belong to; `POST` creates one (you become its owner). |
@@ -16,17 +16,16 @@ Plan events around everyone's schedule. Sign in with Google (via Clerk), create 
 | `api/invite.js` | `GET ?id=` public invite preview for people who aren't signed in yet. |
 | `api/_lib.js` | Neon client, Clerk session check, schema + migrations, validation, access rules. |
 
-### Event flow
-1. **Invited** – people open the link (or are added by email) and sign in with Google.
-2. **Planning to go?** – a "no" is recorded; a "yes" leads to sharing availability.
-3. **Organizers pick dates** – from the best windows in the group summary or in settings.
-4. **Confirm attendance** – everyone (except those who said no) confirms Going / Can't go.
+### Planning timeline
+Each event shows a timeline: **Define the event → Invite people → Find possible dates → Plan the itinerary → Set the dates**. "Find possible dates" (availability poll) and "Plan the itinerary" are optional steps the organizer turns on or off in Event settings. Organizers can make any planning step current; setting the dates moves the event to the last step.
 
-### Roles and settings
-- **Owner** (creator) and **co-organizers** can edit the event, manage people, post updates and set dates. Only the owner can delete the event.
-- **Schedule privacy**: everyone sees details · organizers see details · totals only.
-- **Who can invite**: organizers only · anyone in the event.
-- **Anyone with the link can join**: on by default.
+- **Length** can be a range (e.g. 2–4 days) while planning; setting the dates fixes it.
+- **Going?** Each person answers Yes / Not sure (with a "know by" date) / No. When the dates are set or changed, everyone except "No" is asked to confirm for those dates.
+- **Itinerary** items are planned against Day 1, Day 2…, and show real dates once the dates are set.
+
+### Organizer vs. Event settings
+- **Event settings** (setup): details, polling period, length range, planning steps, privacy, who can invite, invite message, delete.
+- **Organizer** (the work): Checklist, Scheduling review (best windows by length/month/range, set dates), Itinerary, People (invite, filters, co-organizers, remove).
 
 ## Environment variables (Vercel → Project → Settings → Environment Variables)
 

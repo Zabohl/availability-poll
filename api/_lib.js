@@ -105,7 +105,35 @@ export async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS event_updates (
     id bigserial PRIMARY KEY, event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     author_id text NOT NULL, body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`;
+  // v4: length ranges, planning stage + steps, one "going" answer, itinerary
+  await sql`ALTER TABLE events
+    ADD COLUMN IF NOT EXISTS block_min integer,
+    ADD COLUMN IF NOT EXISTS block_max integer,
+    ADD COLUMN IF NOT EXISTS stage text,
+    ADD COLUMN IF NOT EXISTS steps jsonb NOT NULL DEFAULT '{"availability":true,"itinerary":true}'::jsonb`;
+  await sql`UPDATE events SET block_min = block_days, block_max = block_days WHERE block_min IS NULL OR block_max IS NULL`;
+  await sql`UPDATE events SET stage = CASE WHEN final_start IS NOT NULL THEN 'set' ELSE 'dates' END WHERE stage IS NULL`;
+  await sql`ALTER TABLE event_invites
+    ADD COLUMN IF NOT EXISTS know_by text,
+    ADD COLUMN IF NOT EXISTS confirmed_for text`;
+  await sql`UPDATE event_invites i SET rsvp = 'yes', confirmed_for = e.final_start || '|' || e.final_end
+            FROM events e WHERE i.event_id = e.id AND i.attend = 'going' AND e.final_start IS NOT NULL`;
+  await sql`UPDATE event_invites i SET rsvp = 'no' FROM events e
+            WHERE i.event_id = e.id AND i.attend = 'not_going' AND e.final_start IS NOT NULL`;
+  await sql`UPDATE event_invites SET attend = NULL WHERE attend IS NOT NULL`;
+  await sql`CREATE TABLE IF NOT EXISTS event_itinerary (
+    id bigserial PRIMARY KEY, event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    day integer NOT NULL, time text NOT NULL DEFAULT '', title text NOT NULL,
+    location text NOT NULL DEFAULT '', notes text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now())`;
   schemaReady = true;
+}
+
+export const STAGES = ["invite", "dates", "itinerary", "set"];
+export function finalKey(e) { return e.final_start ? e.final_start + "|" + e.final_end : null; }
+export function cleanSteps(s) {
+  s = s && typeof s === "object" ? s : {};
+  return { availability: s.availability !== false, itinerary: s.itinerary !== false };
 }
 
 export function newId() {
@@ -145,15 +173,19 @@ export function cleanEvent(body) {
   const span = (Date.parse(end) - Date.parse(start)) / 864e5;
   if (span < 0) return { error: "The polling period ends before it starts." };
   if (span > 400) return { error: "Keep the polling period under about 13 months." };
-  let block = Math.round(Number(body.block_days));
-  if (!Number.isFinite(block) || block < 1) block = 1;
-  if (block > span + 1) return { error: "The event length is longer than the polling period." };
+  const num = (v, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 ? n : d; };
+  let bmin = num(body.block_min, num(body.block_days, 1));
+  let bmax = num(body.block_max, bmin);
+  if (bmax < bmin) [bmin, bmax] = [bmax, bmin];
+  if (bmax > 60) return { error: "Keep the event length to 60 days or less." };
+  if (bmax > span + 1) return { error: "The event length is longer than the polling period." };
   return {
     value: {
       title,
       description: String(body.description || "").trim().slice(0, 2000),
       location: String(body.location || "").trim().slice(0, 200),
-      start_date: start, end_date: end, block_days: block,
+      start_date: start, end_date: end, block_min: bmin, block_max: bmax,
+      steps: cleanSteps(body.steps),
       open_join: body.open_join !== false,
       privacy: PRIVACY.includes(body.privacy) ? body.privacy : "everyone",
       invite_policy: INVITE_POLICY.includes(body.invite_policy) ? body.invite_policy : "organizers",
