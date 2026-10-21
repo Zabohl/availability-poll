@@ -6,16 +6,27 @@ Plan events around everyone's schedule. Sign in with Google (via Clerk), create 
 
 | Piece | What it does |
 |---|---|
-| `index.html` | The whole front end: landing page, top bar and user menu, name prompt, My events, event form, availability and summary calendars. Hash routes: `#/`, `#/new`, `#/account`, `#/e/<id>`, `#/e/<id>/summary`, `#/e/<id>/edit`. |
+| `index.html` | The whole front end. Hash routes: `#/` (My events), `#/new`, `#/account`, `#/e/<id>` (overview), `#/e/<id>/availability`, `#/e/<id>/summary`, `#/e/<id>/settings`. |
 | `api/config.js` | `GET` returns the Clerk publishable key. |
 | `api/me.js` | `GET`/`PUT` your display name (asked on first sign-in, defaulting to your Google name). |
-| `api/events.js` | `GET` events you organize or are invited to; `POST` creates one. |
-| `api/event.js` | `GET ?id=` event + everyone's answers; `PUT`/`DELETE` for the organizer. |
-| `api/response.js` | `PUT ?id=` saves your answers for an event. |
-| `api/_lib.js` | Neon client, Clerk session check, validation, access rules, table creation. |
-| `schema.sql` | Tables (also created automatically on first request). |
+| `api/events.js` | `GET` events you belong to; `POST` creates one (you become its owner). |
+| `api/event.js` | `GET ?id=` event, people, schedules (filtered by privacy), updates; `PUT` settings; `DELETE` (owner); `POST ?action=` `rsvp`, `attend`, `invite`, `schedule`, `post_update`, `delete_update`, `member_role`, `member_remove`. |
+| `api/response.js` | `PUT ?id=` saves your availability. |
+| `api/contacts.js` | `GET` people you've shared events with (invite picker suggestions). |
+| `api/invite.js` | `GET ?id=` public invite preview for people who aren't signed in yet. |
+| `api/_lib.js` | Neon client, Clerk session check, schema + migrations, validation, access rules. |
 
-Access: the organizer, anyone whose verified email is on the invite list, and (when "Anyone with the link can join" is on) anyone who opens the link while signed in. Other people's email addresses are only shown to the organizer.
+### Event flow
+1. **Invited** – people open the link (or are added by email) and sign in with Google.
+2. **Planning to go?** – a "no" is recorded; a "yes" leads to sharing availability.
+3. **Organizers pick dates** – from the best windows in the group summary or in settings.
+4. **Confirm attendance** – everyone (except those who said no) confirms Going / Can't go.
+
+### Roles and settings
+- **Owner** (creator) and **co-organizers** can edit the event, manage people, post updates and set dates. Only the owner can delete the event.
+- **Schedule privacy**: everyone sees details · organizers see details · totals only.
+- **Who can invite**: organizers only · anyone in the event.
+- **Anyone with the link can join**: on by default.
 
 ## Environment variables (Vercel → Project → Settings → Environment Variables)
 

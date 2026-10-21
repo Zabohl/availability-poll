@@ -29,6 +29,10 @@ export function missingConfig() {
   return missing;
 }
 
+export async function readJson(request) {
+  try { return await request.json(); } catch { return null; }
+}
+
 // ---------- auth ----------
 async function userIdFrom(request) {
   const auth = request.headers.get("authorization") || "";
@@ -42,7 +46,7 @@ async function userIdFrom(request) {
   }
 }
 
-// Returns { userId, emails[], primaryEmail, suggestedName, imageUrl } or a Response to send back.
+// Returns { userId, emails[], primaryEmail, suggestedName } or a Response to send back.
 export async function requireUser(request) {
   const missing = missingConfig();
   if (missing.length) return fail(500, "Server is missing settings: " + missing.join(", "));
@@ -54,52 +58,53 @@ export async function requireUser(request) {
   } catch {
     return fail(401, "Your session could not be confirmed. Please sign in again.");
   }
-  const all = (u.emailAddresses || []).filter(
-    (e) => !e.verification || e.verification.status === "verified"
-  );
-  const emails = [...new Set(all.map((e) => String(e.emailAddress).toLowerCase()))];
-  const primaryEmail = String(
-    (u.primaryEmailAddress && u.primaryEmailAddress.emailAddress) || emails[0] || ""
-  ).toLowerCase();
+  const verified = (u.emailAddresses || []).filter((e) => !e.verification || e.verification.status === "verified");
+  const emails = [...new Set(verified.map((e) => String(e.emailAddress).toLowerCase()))];
+  const primaryEmail = String((u.primaryEmailAddress && u.primaryEmailAddress.emailAddress) || emails[0] || "").toLowerCase();
   if (primaryEmail && !emails.includes(primaryEmail)) emails.push(primaryEmail);
   const suggestedName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || "";
   await ensureSchema();
   return { userId, emails, primaryEmail, suggestedName };
 }
 
-// ---------- schema ----------
+// ---------- schema (idempotent; safe to run on every cold start) ----------
 let schemaReady = false;
 export async function ensureSchema() {
   if (schemaReady) return;
   await sql`CREATE TABLE IF NOT EXISTS profiles (
-    user_id text PRIMARY KEY,
-    name text NOT NULL,
-    email text NOT NULL DEFAULT '',
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now())`;
+    user_id text PRIMARY KEY, name text NOT NULL, email text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
   await sql`CREATE TABLE IF NOT EXISTS events (
-    id text PRIMARY KEY,
-    owner_id text NOT NULL,
-    title text NOT NULL,
-    description text NOT NULL DEFAULT '',
-    start_date text NOT NULL,
-    end_date text NOT NULL,
-    block_days integer NOT NULL DEFAULT 1,
+    id text PRIMARY KEY, owner_id text NOT NULL, title text NOT NULL, description text NOT NULL DEFAULT '',
+    start_date text NOT NULL, end_date text NOT NULL, block_days integer NOT NULL DEFAULT 1,
     open_join boolean NOT NULL DEFAULT true,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now())`;
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
+  await sql`ALTER TABLE events
+    ADD COLUMN IF NOT EXISTS location text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS privacy text NOT NULL DEFAULT 'everyone',
+    ADD COLUMN IF NOT EXISTS invite_policy text NOT NULL DEFAULT 'organizers',
+    ADD COLUMN IF NOT EXISTS invite_message text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS final_start text,
+    ADD COLUMN IF NOT EXISTS final_end text`;
   await sql`CREATE TABLE IF NOT EXISTS event_invites (
-    event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    email text NOT NULL,
+    event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE, email text NOT NULL,
     PRIMARY KEY (event_id, email))`;
-  await sql`CREATE TABLE IF NOT EXISTS event_responses (
-    event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    user_id text NOT NULL,
-    weeks jsonb NOT NULL DEFAULT '{}'::jsonb,
-    months jsonb NOT NULL DEFAULT '{}'::jsonb,
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (event_id, user_id))`;
+  await sql`ALTER TABLE event_invites
+    ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'guest',
+    ADD COLUMN IF NOT EXISTS user_id text,
+    ADD COLUMN IF NOT EXISTS rsvp text,
+    ADD COLUMN IF NOT EXISTS attend text,
+    ADD COLUMN IF NOT EXISTS invited_by text,
+    ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`;
   await sql`CREATE INDEX IF NOT EXISTS event_invites_email ON event_invites (email)`;
+  await sql`CREATE INDEX IF NOT EXISTS event_invites_user ON event_invites (user_id)`;
+  await sql`CREATE TABLE IF NOT EXISTS event_responses (
+    event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE, user_id text NOT NULL,
+    weeks jsonb NOT NULL DEFAULT '{}'::jsonb, months jsonb NOT NULL DEFAULT '{}'::jsonb,
+    updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (event_id, user_id))`;
+  await sql`CREATE TABLE IF NOT EXISTS event_updates (
+    id bigserial PRIMARY KEY, event_id text NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    author_id text NOT NULL, body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`;
   schemaReady = true;
 }
 
@@ -107,19 +112,13 @@ export function newId() {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
 }
 
-export async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return null;
-  }
-}
-
 // ---------- validation ----------
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
+export const PRIVACY = ["everyone", "organizers", "counts"];
+export const INVITE_POLICY = ["organizers", "anyone"];
 
-function validDate(s) {
+export function validDate(s) {
   if (typeof s !== "string" || !DATE.test(s)) return false;
   const d = new Date(s + "T00:00:00Z");
   return !isNaN(d) && d.toISOString().slice(0, 10) === s;
@@ -127,37 +126,38 @@ function validDate(s) {
 
 export function parseEmails(input) {
   const raw = Array.isArray(input) ? input.join(",") : String(input || "");
-  const out = [];
-  const bad = [];
+  const out = [], bad = [];
   for (const part of raw.split(/[\s,;]+/)) {
     const e = part.trim().replace(/^<|>$/g, "").toLowerCase();
     if (!e) continue;
-    if (EMAIL.test(e)) {
-      if (!out.includes(e)) out.push(e);
-    } else bad.push(part.trim());
+    if (EMAIL.test(e)) { if (!out.includes(e)) out.push(e); } else bad.push(part.trim());
   }
   return { emails: out.slice(0, 200), bad };
 }
 
+// Event details shared by create and settings.
 export function cleanEvent(body) {
   if (!body || typeof body !== "object") return { error: "Nothing to save." };
   const title = String(body.title || "").trim().slice(0, 120);
   if (!title) return { error: "Give the event a name." };
-  const description = String(body.description || "").trim().slice(0, 1000);
   const start = body.start_date, end = body.end_date;
-  if (!validDate(start) || !validDate(end)) return { error: "Pick a start and end date." };
+  if (!validDate(start) || !validDate(end)) return { error: "Pick a start and end date for the polling period." };
   const span = (Date.parse(end) - Date.parse(start)) / 864e5;
-  if (span < 0) return { error: "The end date is before the start date." };
+  if (span < 0) return { error: "The polling period ends before it starts." };
   if (span > 400) return { error: "Keep the polling period under about 13 months." };
   let block = Math.round(Number(body.block_days));
   if (!Number.isFinite(block) || block < 1) block = 1;
   if (block > span + 1) return { error: "The event length is longer than the polling period." };
-  const { emails, bad } = parseEmails(body.invitees);
-  if (bad.length) return { error: "These don't look like email addresses: " + bad.slice(0, 3).join(", ") };
   return {
     value: {
-      title, description, start_date: start, end_date: end, block_days: block,
-      open_join: body.open_join !== false, invitees: emails,
+      title,
+      description: String(body.description || "").trim().slice(0, 2000),
+      location: String(body.location || "").trim().slice(0, 200),
+      start_date: start, end_date: end, block_days: block,
+      open_join: body.open_join !== false,
+      privacy: PRIVACY.includes(body.privacy) ? body.privacy : "everyone",
+      invite_policy: INVITE_POLICY.includes(body.invite_policy) ? body.invite_policy : "organizers",
+      invite_message: String(body.invite_message || "").trim().slice(0, 1000),
     },
   };
 }
@@ -165,7 +165,6 @@ export function cleanEvent(body) {
 const STATUSES = new Set(["open", "partial", "tentative", "na"]);
 const WEEK_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_KEY = /^\d{4}-\d{2}$/;
-
 function cleanDays(a) {
   if (!Array.isArray(a)) return [];
   const out = [];
@@ -182,10 +181,7 @@ function cleanAnswer(a, withDayMap) {
   if (a.s === "partial") {
     if (withDayMap) {
       for (const [k, v] of Object.entries(a.days || {})) {
-        if (WEEK_KEY.test(k)) {
-          const d = cleanDays(v);
-          if (d.length) out.days[k] = d;
-        }
+        if (WEEK_KEY.test(k)) { const d = cleanDays(v); if (d.length) out.days[k] = d; }
       }
     } else out.days = cleanDays(a.days);
   }
@@ -210,20 +206,56 @@ export function cleanSubmission(body) {
 }
 
 // ---------- access ----------
-// Loads an event the user may see. Adds them to the invite list when the event
-// allows "anyone with the link" and `join` is true. Returns {event, isOwner} or a Response.
+// Finds the event and the user's membership. Links invites sent to any of the user's
+// verified emails to their account. With `join`, someone opening an "anyone with the link"
+// event becomes a guest. Returns { event, member, isOwner, isAdmin, canInvite } or a Response.
 export async function loadEventFor(user, id, join) {
   if (!id || typeof id !== "string" || id.length > 40) return fail(404, "That event doesn't exist.");
   const rows = await sql`SELECT * FROM events WHERE id = ${id}`;
   const event = rows[0];
   if (!event) return fail(404, "That event doesn't exist or was deleted.");
   const isOwner = event.owner_id === user.userId;
-  if (isOwner) return { event, isOwner };
-  const inv = await sql`SELECT 1 FROM event_invites WHERE event_id = ${id} AND email = ANY(${user.emails}) LIMIT 1`;
-  if (inv.length) return { event, isOwner };
-  if (event.open_join && join && user.primaryEmail) {
-    await sql`INSERT INTO event_invites (event_id, email) VALUES (${id}, ${user.primaryEmail}) ON CONFLICT DO NOTHING`;
-    return { event, isOwner };
+
+  let mine = await sql`SELECT * FROM event_invites WHERE event_id = ${id}
+                       AND (user_id = ${user.userId} OR email = ANY(${user.emails}))
+                       ORDER BY (user_id = ${user.userId}) DESC NULLS LAST LIMIT 1`;
+  let member = mine[0] || null;
+  if (member && member.role === "removed" && !isOwner) {
+    return fail(403, "You've been removed from this event. Ask the organizer if that's a mistake.");
   }
-  return fail(403, "You're not on the invite list for this event. Ask the organizer to add " + (user.primaryEmail || "your email") + ".");
+  if (member && !member.user_id) {
+    await sql`UPDATE event_invites SET user_id = ${user.userId} WHERE event_id = ${id} AND email = ${member.email}`;
+    member.user_id = user.userId;
+  }
+  if (!member && isOwner && user.primaryEmail) {
+    await sql`INSERT INTO event_invites (event_id, email, role, user_id, rsvp)
+              VALUES (${id}, ${user.primaryEmail}, 'owner', ${user.userId}, 'yes')
+              ON CONFLICT (event_id, email) DO UPDATE SET role = 'owner', user_id = EXCLUDED.user_id`;
+    member = { email: user.primaryEmail, role: "owner", user_id: user.userId, rsvp: "yes", attend: null };
+  }
+  if (!member) {
+    // People who answered before invites existed keep access.
+    const legacy = await sql`SELECT 1 FROM event_responses WHERE event_id = ${id} AND user_id = ${user.userId}`;
+    if ((legacy.length || (event.open_join && join)) && user.primaryEmail) {
+      await sql`INSERT INTO event_invites (event_id, email, role, user_id, rsvp)
+                VALUES (${id}, ${user.primaryEmail}, 'guest', ${user.userId}, ${legacy.length ? "yes" : null})
+                ON CONFLICT (event_id, email) DO NOTHING`;
+      member = { email: user.primaryEmail, role: "guest", user_id: user.userId, rsvp: legacy.length ? "yes" : null, attend: null };
+    } else {
+      return fail(403, "You're not on the invite list for this event. Ask the organizer to add " + (user.primaryEmail || "your email") + ".");
+    }
+  }
+  const isAdmin = isOwner || member.role === "owner" || member.role === "admin";
+  const canInvite = isAdmin || event.invite_policy === "anyone";
+  return { event, member, isOwner, isAdmin, canInvite };
+}
+
+export async function addInvites(eventId, emails, invitedBy) {
+  if (!emails.length) return 0;
+  const res = await sql`INSERT INTO event_invites (event_id, email, role, invited_by)
+                        SELECT ${eventId}, x, 'guest', ${invitedBy} FROM unnest(${emails}::text[]) AS x
+                        ON CONFLICT (event_id, email) DO UPDATE SET role = 'guest'
+                        WHERE event_invites.role = 'removed'
+                        RETURNING email`;
+  return res.length;
 }

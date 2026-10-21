@@ -4,201 +4,295 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Group Availability</title>
-<meta name="description" content="Find the weeks that work for everyone. Invite people, collect availability week by week, and see open days at a glance.">
+<meta name="description" content="Plan events around everyone's schedule. Invite people, collect availability week by week, and pick dates that work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
 <style>
-/* Layout: sticky top bar, centered content column (wide grid for calendars), cards for grouped content. */
+/* Layout: sticky top bar; content column up to 1320px; event pages use a 2-column dashboard
+   (main + side) that stacks on phones. Ink-blue is the brand accent so that green, red and
+   amber stay reserved for availability. */
 :root{
-  --bg:#f5f4ef;--fg:#1c1f23;--muted:#666b73;--line:#d9d6cc;--card:#ffffff;--soft:#ecebe4;
-  --accent:#1f4d3a;--accent-fg:#ffffff;
-  --open:#2e7d4f;--tent:#2d6aa8;--na:#c2413b;--none:#cfccc3;--focus:#1f4d3a;
-  --shadow:0 8px 24px rgba(20,24,28,.14);
+  --bg:#f3f4f7;--fg:#15171c;--muted:#5b6170;--line:#dcdfe6;--card:#ffffff;--soft:#eceef3;
+  --accent:#3346b8;--accent-fg:#ffffff;--accent-soft:#e6e9fb;
+  --free:#2c8a56;--busy:#d2463a;--unsure:#c98a0c;--none:#c6cad3;
+  --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --pop:0 10px 28px rgba(18,22,40,.16);
   color-scheme:light;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--soft:#24282d;--accent:#86c9a6;--accent-fg:#10231a;--open:#5cb882;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;--shadow:0 8px 24px rgba(0,0,0,.5);color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--soft:#24282d;--accent:#86c9a6;--accent-fg:#10231a;--open:#5cb882;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;--shadow:0 8px 24px rgba(0,0,0,.5);color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101217;--fg:#e8eaf0;--muted:#9aa1b0;--line:#2b303a;--card:#181b22;--soft:#21252d;--accent:#8c9cff;--accent-fg:#0c1033;--accent-soft:#252b4d;--free:#4cc489;--busy:#f06a5a;--unsure:#f0b545;--none:#3a3f4a;--pop:0 10px 28px rgba(0,0,0,.55);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101217;--fg:#e8eaf0;--muted:#9aa1b0;--line:#2b303a;--card:#181b22;--soft:#21252d;--accent:#8c9cff;--accent-fg:#0c1033;--accent-soft:#252b4d;--free:#4cc489;--busy:#f06a5a;--unsure:#f0b545;--none:#3a3f4a;--pop:0 10px 28px rgba(0,0,0,.55);color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--font)}
 [hidden]{display:none!important}
 a{color:var(--accent)}
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-h1{font-size:24px;margin:0 0 4px;text-wrap:balance;font-weight:650}
-h2{font-size:16px;margin:0 0 10px;font-weight:600}
-.wrap{max-width:1480px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-main.wrap{padding-block:20px 40px;min-width:0}
-.narrow{max-width:720px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font-size:26px;line-height:1.2;margin:0 0 4px;text-wrap:balance;font-weight:750;letter-spacing:-.01em}
+h2{font-size:16px;margin:0 0 10px;font-weight:700}
+h3{font-size:14px;margin:0 0 6px;font-weight:700}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main.wrap{padding-block:20px 48px;min-width:0}
+.narrow{max-width:760px}
 .sub{color:var(--muted);margin:0 0 14px}
 .lbl{font-size:12px;color:var(--muted)}
 .msg{color:var(--muted);font-size:13px;margin:6px 0 0}
-.err{color:var(--na)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;min-width:0}
+.err{color:var(--busy)}
+.ok{color:var(--free)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;min-width:0}
+.card>h2:first-child{margin-bottom:12px}
 
 /* controls */
-button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:38px;cursor:pointer}
+button,.btn{font:inherit;font-weight:600;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 14px;min-height:38px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button:hover,.btn:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
 button[disabled]{opacity:.5;cursor:default}
-.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.primary:hover{border-color:var(--accent);filter:brightness(1.07)}
 .ghost{background:transparent}
-.danger{color:var(--na);border-color:color-mix(in srgb,var(--na) 50%,var(--line))}
-button.link{background:none;border:none;padding:0;min-height:0;color:var(--accent);text-decoration:underline;font-size:13px}
-input,textarea,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:38px;width:100%;min-width:0}
+.danger{color:var(--busy);border-color:color-mix(in srgb,var(--busy) 45%,var(--line))}
+.sm{min-height:32px;padding:4px 10px;font-size:13px}
+button.link{background:none;border:none;padding:0;min-height:0;color:var(--accent);text-decoration:underline;font-size:13px;font-weight:600}
+input,textarea,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-height:38px;width:100%;min-width:0}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 textarea{min-height:90px;resize:vertical}
-select{padding:4px 8px;min-height:32px}
+select{padding:4px 8px;min-height:34px}
 select:disabled{opacity:.45;cursor:not-allowed}
 .field{display:grid;gap:4px;margin:0 0 12px}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.field>.lbl{font-weight:600;color:var(--fg);font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
-.check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
-.check input{width:auto;min-height:0;margin-top:3px}
+.check,.radio{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:0 0 10px;cursor:pointer}
+.check input,.radio input{width:auto;min-height:0;margin-top:4px;accent-color:var(--accent)}
+.check small,.radio small{display:block;color:var(--muted);font-size:12px}
+fieldset{border:none;padding:0;margin:0 0 6px}
+legend{font-weight:700;font-size:14px;margin-bottom:8px;padding:0}
 
 /* top bar */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--card)}
-.top .wrap{display:flex;align-items:center;gap:16px;min-height:56px}
-.brand{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--fg);text-decoration:none;font-size:16px;white-space:nowrap}
+.top .wrap{display:flex;align-items:center;gap:18px;min-height:58px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;color:var(--fg);text-decoration:none;font-size:16px;white-space:nowrap;letter-spacing:-.01em}
 .brand i{display:grid;grid-template-columns:repeat(3,7px);gap:2px}
-.brand i b{width:7px;height:7px;border-radius:2px;background:var(--open)}
-.brand i b:nth-child(2),.brand i b:nth-child(6){background:var(--na)}
-.brand i b:nth-child(4){background:var(--tent)}
+.brand i b{width:7px;height:7px;border-radius:2px;background:var(--free)}
+.brand i b:nth-child(2),.brand i b:nth-child(6){background:var(--busy)}
+.brand i b:nth-child(4){background:var(--accent)}
 .navlinks{display:flex;gap:4px;flex:1;min-width:0}
-.navlinks a{padding:8px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;white-space:nowrap}
-.navlinks a.on{color:var(--fg);background:var(--soft);font-weight:600}
+.navlinks a{padding:8px 11px;border-radius:9px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;white-space:nowrap}
+.navlinks a:hover{color:var(--fg)}
+.navlinks a.on{color:var(--accent);background:var(--accent-soft)}
 .navright{display:flex;align-items:center;gap:10px;margin-left:auto}
-.avatar{width:36px;height:36px;border-radius:50%;padding:0;min-height:0;overflow:hidden;display:grid;place-items:center;background:var(--soft);font-weight:600;font-size:14px}
+.avatar{width:36px;height:36px;border-radius:50%;padding:0;min-height:0;overflow:hidden;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px}
 .avatar img{width:100%;height:100%;object-fit:cover}
-.menu{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:60px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:240px;padding:6px;z-index:30}
+.menu{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:62px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop);min-width:250px;padding:6px;z-index:30}
 .menu .who{padding:10px 10px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
 .menu .who b{display:block}
 .menu .who span{font-size:12px;color:var(--muted);word-break:break-all}
-.menu button{display:block;width:100%;text-align:left;border:none;background:none;border-radius:8px}
+.menu button{display:flex;justify-content:flex-start;width:100%;border:none;background:none;border-radius:8px;font-weight:500}
 .menu button:hover{background:var(--soft)}
-@media (max-width:560px){.navlinks a.hide-sm,.hide-sm{display:none}}
+@media (max-width:560px){.hide-sm{display:none!important}}
 
 /* landing */
-.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:center;padding-block:40px 24px}
-.hero h1{font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.02em;margin-bottom:14px}
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:44px;align-items:center;padding-block:44px 28px}
+.hero h1{font-size:clamp(32px,5.4vw,54px);line-height:1.04;letter-spacing:-.03em;margin-bottom:16px;font-weight:800}
+.hero h1 em{font-style:normal;color:var(--accent)}
 .hero p{font-size:17px;color:var(--muted);max-width:52ch;margin:0 0 22px}
-.hero .primary{font-size:16px;padding:12px 20px}
-.demo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
-.demo .t{font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between}
-.demo .g{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.demo .g .sd{aspect-ratio:1;min-height:0}
+.hero .primary{font-size:16px;padding:12px 22px}
+.invitecard{border-left:4px solid var(--accent);padding-left:14px;margin:0 0 18px}
+.invitecard .from{font-size:13px;color:var(--muted)}
+.invitecard blockquote{margin:8px 0 0;font-size:15px;white-space:pre-line}
+.demo{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.demo .t{font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between}
+.demo .sd{aspect-ratio:1;min-height:0;cursor:default}
 .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;padding-block:8px 24px}
-.features .card h3{margin:0 0 4px;font-size:15px}
+.features .card h3{font-size:15px}
 .features .card p{margin:0;color:var(--muted);font-size:14px}
 @media (max-width:820px){.hero{grid-template-columns:1fr;gap:24px;padding-top:24px}}
 
-/* home list */
+/* home */
 .head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
-.events{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
-a.ev{display:grid;gap:8px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.events{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px}
+a.ev{display:grid;gap:8px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
 a.ev:hover{border-color:var(--accent)}
-a.ev h3{margin:0;font-size:16px}
+a.ev h3{margin:0;font-size:17px}
 a.ev .meta{font-size:13px;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
-.chip.go{background:color-mix(in srgb,var(--open) 18%,var(--card));color:var(--fg)}
-.chip.todo{background:color-mix(in srgb,var(--na) 16%,var(--card));color:var(--fg)}
-.empty{text-align:center;padding:40px 16px}
+.chip{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.chip.acc{background:var(--accent-soft);color:var(--accent)}
+.chip.go{background:color-mix(in srgb,var(--free) 18%,var(--card));color:var(--fg)}
+.chip.todo{background:color-mix(in srgb,var(--unsure) 22%,var(--card));color:var(--fg)}
+.chip.no{background:color-mix(in srgb,var(--busy) 15%,var(--card));color:var(--fg)}
+.empty{text-align:center;padding:44px 16px}
 
-/* event page */
-.crumb{font-size:13px;margin-bottom:8px;display:inline-block}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:16px 0}
-.tabs a{padding:10px 12px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:14px;white-space:nowrap}
-.tabs a.on{color:var(--fg);border-color:var(--accent);font-weight:600}
-.share{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.share input{flex:1;min-width:0;font-size:13px}
+/* event header + layout */
+.crumb{font-size:13px;margin-bottom:10px;display:inline-block;font-weight:600;text-decoration:none}
+.ehead{display:flex;flex-wrap:wrap;gap:12px 20px;justify-content:space-between;align-items:flex-start}
+.ehead .meta{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--muted);font-size:14px;margin:4px 0 12px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:18px 0;overflow-x:auto}
+.tabs a{padding:10px 12px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:14px;font-weight:600;white-space:nowrap}
+.tabs a.on{color:var(--fg);border-color:var(--accent)}
+.dash{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.dash{grid-template-columns:minmax(0,1fr)}}
+.dash>div{min-width:0}
+.win>button.main span{overflow-wrap:anywhere}
+.prompt{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:14px;padding:18px;margin-bottom:14px}
+.prompt h2{margin-bottom:4px}
+.prompt blockquote{margin:10px 0;padding-left:12px;border-left:3px solid var(--accent);white-space:pre-line}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:14px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;min-width:0}
+.statuslist{display:grid;gap:10px}
+.st{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.st .k{font-size:12px;color:var(--muted)}
+.st .v{font-weight:700}
+.st .v.ok{color:var(--free)} .st .v.no{color:var(--busy)} .st .v.todo{color:var(--unsure)}
+.group{margin-bottom:12px}
+.group h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.plist{display:grid;gap:6px}
+.person{display:flex;align-items:center;gap:10px;font-size:14px}
+.person .av{width:28px;height:28px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted);flex:none}
+.person .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person .tag{margin-left:auto}
+.upd{border-top:1px solid var(--line);padding:12px 0}
+.upd:first-of-type{border-top:none}
+.upd .by{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.upd p{margin:6px 0 0;white-space:pre-line}
 
 /* status colors */
-.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin:0 0 12px}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
-.legend i.st-open{background:var(--open)}
-.legend i.st-partial{background:linear-gradient(135deg,var(--open) 50%,var(--na) 50%)}
-.legend i.st-tentative{background:repeating-linear-gradient(45deg,var(--tent) 0 3px,color-mix(in srgb,var(--tent) 25%,var(--card)) 3px 6px)}
-.legend i.st-na{background:var(--na)}
-.legend i.st-none{background:var(--none)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:0 0 12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+i.st-open{background:var(--free)}
+i.st-partial{background:linear-gradient(135deg,var(--free) 50%,var(--busy) 50%)}
+i.st-tentative{background:repeating-linear-gradient(45deg,var(--unsure) 0 3px,color-mix(in srgb,var(--unsure) 25%,var(--card)) 3px 6px)}
+i.st-na{background:var(--busy)}
+i.st-none{background:var(--none)}
 
-/* month cards (respond + summary) */
+/* month cards */
 .months{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;align-items:stretch}
 .months>.card{margin-bottom:0}
 .mhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px}
-.mhead h2{margin:0;line-height:32px}
+.mhead h2{margin:0;line-height:34px}
 .mset{display:flex;align-items:center;gap:8px;margin:0}
 .mset .lbl{white-space:nowrap}
 .mset select{width:auto;min-width:140px}
 .mdetail{display:grid;gap:4px;margin:0 0 12px}
 .cal{display:grid;grid-template-columns:52px minmax(96px,128px) repeat(7,minmax(0,1fr));gap:6px 4px;align-items:start}
-.hd{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:center;line-height:16px}
+.hd{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:center;line-height:16px;font-weight:600}
 .hd.l{text-align:left}
-.hd .sm{display:none}
-@media (max-width:520px){.hd .lg{display:none}.hd .sm{display:inline}}
-.wk{font-size:13px;font-weight:600;line-height:32px;white-space:nowrap}
+.hd .s1{display:none}
+@media (max-width:520px){.hd .lg{display:none}.hd .s1{display:inline}}
+.wk{font-size:13px;font-weight:700;line-height:34px;white-space:nowrap}
 .ws select{font-size:13px}
-.d{height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;border:1px solid var(--line);background:var(--card);font-variant-numeric:tabular-nums}
-.d.out{opacity:.4}
+.d{height:34px;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:6px;border:1px solid var(--line);background:var(--card);font-variant-numeric:tabular-nums}
+.d.out{opacity:.45}
 .d.off{opacity:.18;background:transparent!important;border-style:dotted!important}
-.d.st-none{background:color-mix(in srgb,var(--none) 60%,var(--card));border-color:var(--none)}
-.d.st-open{background:color-mix(in srgb,var(--open) 35%,var(--card));border-color:color-mix(in srgb,var(--open) 60%,var(--card))}
-.d.st-tentative{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tent) 45%,var(--card)) 0 4px,color-mix(in srgb,var(--tent) 12%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--tent) 60%,var(--card))}
-.d.st-na{background:color-mix(in srgb,var(--na) 35%,var(--card));border-color:color-mix(in srgb,var(--na) 60%,var(--card))}
-.d.st-partial{background:color-mix(in srgb,var(--na) 30%,var(--card));border:1.5px dashed var(--na)}
-.d.st-partial.pk{background:color-mix(in srgb,var(--open) 38%,var(--card));border:1.5px dashed var(--open);font-weight:600}
-.cal button.d{min-height:0;padding:0;font-size:11px;cursor:pointer;color:var(--fg)}
-.cal button.d.tap{height:36px}
+.d.st-none{background:color-mix(in srgb,var(--none) 55%,var(--card));border-color:var(--none)}
+.d.st-open{background:color-mix(in srgb,var(--free) 32%,var(--card));border-color:color-mix(in srgb,var(--free) 60%,var(--card))}
+.d.st-tentative{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--unsure) 45%,var(--card)) 0 4px,color-mix(in srgb,var(--unsure) 12%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--unsure) 60%,var(--card))}
+.d.st-na{background:color-mix(in srgb,var(--busy) 30%,var(--card));border-color:color-mix(in srgb,var(--busy) 55%,var(--card))}
+.d.st-partial{background:color-mix(in srgb,var(--busy) 24%,var(--card));border:1.5px dashed var(--busy)}
+.d.st-partial.pk{background:color-mix(in srgb,var(--free) 36%,var(--card));border:1.5px dashed var(--free);font-weight:700}
+.cal button.d{min-height:0;padding:0;font-size:11px;cursor:pointer;color:var(--fg);font-weight:500}
+.cal button.d.tap{height:38px}
 .hint{grid-column:3 / -1;font-size:11px;color:var(--muted);margin-top:-4px}
 .wdetail{grid-column:2 / -1;display:grid;gap:4px}
 .tdate{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .tdate input{width:auto;max-width:170px;min-height:32px;padding:4px 8px;font-size:13px}
 .save{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;z-index:5}
 
-/* summary calendar */
+/* summary */
 .sumcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-.sd{position:relative;min-height:46px;border-radius:7px;border:1px solid var(--line);background:var(--card);padding:4px 6px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;font-variant-numeric:tabular-nums;cursor:pointer;color:var(--fg);font-size:12px;min-width:0}
-.sd .n{font-weight:600}
-.sd .b{align-self:flex-end;font-size:12px;font-weight:700;line-height:1}
+.sd{position:relative;min-height:48px;border-radius:8px;border:1px solid var(--line);background:var(--card);padding:4px 6px;display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;font-variant-numeric:tabular-nums;cursor:pointer;color:var(--fg);font-size:12px;font-weight:500;min-width:0}
+.sd .n{font-weight:700;text-align:left}
+.sd .b{align-self:flex-end;font-size:12px;font-weight:800;line-height:1}
 .sd.blank{visibility:hidden}
-.sd.out{opacity:.55}
-.sd.c-none{background:color-mix(in srgb,var(--none) 50%,var(--card))}
-.sd.c-open{background:color-mix(in srgb,var(--open) 30%,var(--card));border-color:color-mix(in srgb,var(--open) 55%,var(--card))}
-.sd.c-all{background:color-mix(in srgb,var(--open) 55%,var(--card));border-color:var(--open)}
-.sd.c-tent{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tent) 40%,var(--card)) 0 4px,color-mix(in srgb,var(--tent) 10%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--tent) 55%,var(--card))}
-.sd.c-busy{background:color-mix(in srgb,var(--na) var(--lv,35%),var(--card));border-color:color-mix(in srgb,var(--na) 60%,var(--card))}
-.sd.hl{outline:3px solid var(--fg);outline-offset:1px;z-index:1}
-.sd.sel{outline:2px solid var(--accent);outline-offset:1px}
-.tip{position:fixed;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;max-width:280px;font-size:13px;pointer-events:none}
+.sd.out{opacity:.6}
+.sd.dim{opacity:.25}
+.sd.c-none{background:color-mix(in srgb,var(--none) 45%,var(--card))}
+.sd.c-open{background:color-mix(in srgb,var(--free) 26%,var(--card));border-color:color-mix(in srgb,var(--free) 50%,var(--card))}
+.sd.c-all{background:color-mix(in srgb,var(--free) 52%,var(--card));border-color:var(--free)}
+.sd.c-tent{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--unsure) 40%,var(--card)) 0 4px,color-mix(in srgb,var(--unsure) 10%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--unsure) 55%,var(--card))}
+.sd.c-busy{background:color-mix(in srgb,var(--busy) var(--lv,30%),var(--card));border-color:color-mix(in srgb,var(--busy) 55%,var(--card))}
+.sd.final{box-shadow:inset 0 -4px 0 var(--accent)}
+.sd.hl{outline:3px solid var(--accent);outline-offset:1px;z-index:1}
+.sd.sel{outline:2px dashed var(--fg);outline-offset:2px;z-index:2}
+.tip{position:fixed;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop);padding:10px 12px;max-width:290px;font-size:13px;pointer-events:none}
 .tip h4{margin:0 0 6px;font-size:13px}
 .tip .grp{margin-top:6px}
-.tip .grp b{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tip .grp b{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .tip .grp div{margin-top:2px}
-.windows{display:grid;gap:8px}
-.win{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:space-between;text-align:left;width:100%}
-.win[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
-.win .r{font-weight:600}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.seg button{min-height:32px;padding:4px 12px;font-size:13px;border-radius:999px}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.wins{display:grid;gap:8px}
+.win{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.win.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.win>button.main{flex:1;border:none;border-radius:0;justify-content:flex-start;text-align:left;display:grid;gap:2px;font-weight:500;min-width:0;background:transparent}
+.win .r{font-weight:700}
 .win .s{font-size:13px;color:var(--muted)}
-.people{display:flex;flex-wrap:wrap;gap:6px}
-.people span{font-size:13px;padding:3px 10px;border:1px solid var(--line);border-radius:999px}
-.people span.me{border-color:var(--accent);font-weight:600}
-.people span.pend{border-style:dashed;color:var(--muted)}
-@media (prefers-reduced-motion:no-preference){a.ev,.sd{transition:border-color .15s}}
+.win>button.set{border:none;border-left:1px solid var(--line);border-radius:0;font-size:13px;color:var(--accent);white-space:nowrap;background:transparent}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.tbl td.n,.tbl th.n{text-align:right}
+.scroll{overflow-x:auto}
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--soft);min-width:80px}
+.bar i{display:block;height:100%}
+
+/* members */
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:none}
+.mrow .who{min-width:0}
+.mrow .who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .who span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.mrow select{width:auto}
+@media (max-width:560px){.mrow{grid-template-columns:1fr auto}.mrow .who{grid-column:1 / -1}}
+
+/* modal + picker */
+.modal-back{position:fixed;inset:0;background:rgba(10,12,20,.45);z-index:50;display:grid;place-items:start center;overflow-y:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 24px max(12px,env(safe-area-inset-left,0px))}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;width:min(620px,100%);padding:20px;box-shadow:var(--pop)}
+.modal .mh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.modal .x{border:none;background:none;font-size:22px;line-height:1;min-height:0;padding:4px 8px;color:var(--muted)}
+.preview{background:var(--soft);border-radius:10px;padding:12px;font-size:13px;white-space:pre-wrap;max-height:200px;overflow:auto;margin:0}
+.picker{position:relative}
+.pbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:6px;background:var(--card);min-height:44px;cursor:text}
+.pbox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.pchips{display:contents}
+.pchip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--fg);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px;max-width:100%}
+.pchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pchip button{border:none;background:none;min-height:0;padding:0 6px;font-size:16px;line-height:1;color:var(--muted)}
+.pin{border:none!important;box-shadow:none!important;flex:1;min-width:160px;min-height:30px;padding:2px 4px}
+.pdd{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--pop);z-index:60;max-height:260px;overflow:auto;padding:4px}
+.popt{padding:8px 10px;border-radius:8px;cursor:pointer;display:grid;font-size:14px}
+.popt span{font-size:12px;color:var(--muted)}
+.popt.on,.popt:hover{background:var(--soft)}
+.pempty{padding:8px 10px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){a.ev,.sd,button{transition:border-color .15s,background-color .15s}}
 </style>
 </head>
 <body>
 <header class="top" id="top"></header>
 <main class="wrap" id="app"></main>
+<div id="modal"></div>
 <div class="tip" id="tip" hidden></div>
 <script>
 (function () {
   "use strict";
-  // ---------- constants & date helpers ----------
+  // ---------- constants & helpers ----------
   var STATUS = [["open", "Free"], ["partial", "Set days"], ["tentative", "Not Sure Yet"], ["na", "Busy"]];
   var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   var ST_CLS = { open: "st-open", partial: "st-partial", tentative: "st-tentative", na: "st-na" };
+  var PRIVACY = {
+    everyone: ["Everyone sees details", "Everyone in the event can see who is free or busy on each day."],
+    organizers: ["Organizers see details", "Organizers see who is free or busy. Guests see totals per day only."],
+    counts: ["Totals only", "Nobody sees who is busy on which day, only how many. Each person sees their own answers."]
+  };
   var DAY = 864e5;
-
   function p2(n) { return (n < 10 ? "0" : "") + n; }
   function d2s(t) { var d = new Date(t); return d.getUTCFullYear() + "-" + p2(d.getUTCMonth() + 1) + "-" + p2(d.getUTCDate()); }
-  function ts(key) { var p = key.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function ts(key) { var p = key.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2] || 1); }
   function fmtRange(t) {
     var a = new Date(t), b = new Date(t + 6 * DAY);
     return MON[a.getUTCMonth()] + " " + a.getUTCDate() + " – " + (a.getUTCMonth() === b.getUTCMonth() ? "" : MON[b.getUTCMonth()] + " ") + b.getUTCDate();
@@ -209,9 +303,14 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     return (withDow ? DOW[(d.getUTCDay() + 6) % 7] + ", " : "") + MON[d.getUTCMonth()] + " " + d.getUTCDate() + ", " + d.getUTCFullYear();
   }
   function fmtShort(iso) { var d = new Date(ts(iso)); return DOW[(d.getUTCDay() + 6) % 7] + " " + MON[d.getUTCMonth()] + " " + d.getUTCDate(); }
-  function fmtSpan(a, b) { return fmtDate(a) + " – " + fmtDate(b); }
+  function fmtSpan(a, b) {
+    if (!a) return "";
+    var x = new Date(ts(a)), y = new Date(ts(b));
+    if (a === b) return fmtDate(a, true);
+    if (x.getUTCFullYear() === y.getUTCFullYear()) return MON[x.getUTCMonth()] + " " + x.getUTCDate() + " – " + (x.getUTCMonth() === y.getUTCMonth() ? "" : MON[y.getUTCMonth()] + " ") + y.getUTCDate() + ", " + y.getUTCFullYear();
+    return fmtDate(a) + " – " + fmtDate(b);
+  }
   function fmtBlockAdj(n) { n = +n || 1; return n % 7 === 0 ? (n / 7) + "-week" : n + "-day"; }
-  function fmtBlock(n) { n = +n || 1; return n % 7 === 0 ? (n / 7) + (n === 7 ? " week" : " weeks") : n + (n === 1 ? " day" : " days"); }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -223,17 +322,26 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     (a || []).forEach(function (i) { i = +i; if (i >= 0 && i < 7 && out.indexOf(i) < 0) out.push(i); });
     return out.sort();
   }
+  function initials(n) { return String(n || "?").trim().split(/[\s@.]+/).filter(Boolean).map(function (w) { return w.charAt(0); }).slice(0, 2).join("").toUpperCase() || "?"; }
+  function ago(iso) {
+    var s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < 60) return "just now";
+    if (s < 3600) return Math.floor(s / 60) + " min ago";
+    if (s < 86400) return Math.floor(s / 3600) + " h ago";
+    if (s < 86400 * 7) return Math.floor(s / 86400) + " d ago";
+    var d = new Date(iso); return MON[d.getMonth()] + " " + d.getDate();
+  }
+  var EMAIL_RE = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 
-  // Weeks (Mon–Sun) covering [start, end]. A week belongs to the month of its Thursday,
-  // or of its first in-range day when that Thursday falls outside the range.
+  // Weeks (Mon–Sun) covering [start, end]; a week belongs to its Thursday's month
+  // (or its first in-range day's month when that Thursday is outside the range).
   function buildCal(start, end) {
     var s = ts(start), e = ts(end), dow = (new Date(s).getUTCDay() + 6) % 7;
     var months = [], by = {};
     for (var t = s - dow * DAY; t <= e; t += 7 * DAY) {
-      var thu = t + 3 * DAY, anchor = thu;
-      if (thu < s || thu > e) anchor = Math.max(t, s);
+      var thu = t + 3 * DAY, anchor = thu < s || thu > e ? Math.max(t, s) : thu;
       var ad = new Date(anchor), mk = ad.getUTCFullYear() + "-" + p2(ad.getUTCMonth() + 1);
-      if (!by[mk]) { by[mk] = { key: mk, label: MON[ad.getUTCMonth()] + " " + ad.getUTCFullYear(), m: ad.getUTCMonth(), weeks: [] }; months.push(by[mk]); }
+      if (!by[mk]) { by[mk] = { key: mk, label: MON[ad.getUTCMonth()] + " " + ad.getUTCFullYear(), long: MONL[ad.getUTCMonth()] + " " + ad.getUTCFullYear(), m: ad.getUTCMonth(), weeks: [] }; months.push(by[mk]); }
       var days = [];
       for (var i = 0; i < 7; i++) {
         var dt = t + i * DAY, dd = new Date(dt);
@@ -244,18 +352,17 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     return months;
   }
 
-  // ---------- app state ----------
+  // ---------- state ----------
   var S = {
     route: { name: "home" }, phase: "loading", phaseMsg: "",
-    profile: null, suggestedName: "", email: "",
+    profile: null, suggestedName: "", email: "", contacts: null, invite: null,
     events: null, ev: null, cal: [], weeks: [],
     draft: { weeks: {}, months: {} }, dirty: false,
     msg: "", msgErr: false, saving: false, menu: false,
-    hl: null, sel: null, delConfirm: false
+    hl: null, sel: null, ex: { mode: "all" }, ask: null, openInvite: false
   };
-  var top = document.getElementById("top"), app = document.getElementById("app"), tip = document.getElementById("tip");
-  var C = null; // Clerk
-
+  var top = document.getElementById("top"), app = document.getElementById("app"), modalRoot = document.getElementById("modal"), tip = document.getElementById("tip");
+  var C = null;
   function signedIn() { return !!(C && C.user); }
 
   function api(path, method, body) {
@@ -272,43 +379,62 @@ a.ev .meta{font-size:13px;color:var(--muted)}
       });
     });
   }
+  function act(action, body) {
+    return api("/api/event?id=" + encodeURIComponent(S.ev.event.id) + "&action=" + action, "POST", body || {});
+  }
+  function loadContacts() {
+    if (S.contacts) return Promise.resolve(S.contacts);
+    return api("/api/contacts").then(function (d) { S.contacts = d.contacts || []; return S.contacts; }, function () { S.contacts = []; return []; });
+  }
 
   // ---------- routing ----------
+  var TABS = ["availability", "summary", "settings"];
   function parseRoute() {
     var h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
     if (p[0] === "new") return { name: "new" };
     if (p[0] === "account") return { name: "account" };
-    if (p[0] === "e" && p[1]) return { name: "event", id: p[1], tab: ["summary", "edit"].indexOf(p[2]) >= 0 ? p[2] : "respond" };
+    if (p[0] === "e" && p[1]) return { name: "event", id: p[1], tab: TABS.indexOf(p[2]) >= 0 ? p[2] : "overview" };
     return { name: "home" };
   }
   function nav(h) { if (location.hash === h) go(); else location.hash = h; }
-
   function go() {
-    S.route = parseRoute(); S.msg = ""; S.msgErr = false; S.menu = false; S.delConfirm = false; hideTip();
-    if (!signedIn() || !S.profile) { render(); return; }
+    var prev = S.route;
+    S.route = parseRoute(); S.msg = ""; S.msgErr = false; S.menu = false; S.ask = null; hideTip();
+    if (!signedIn()) {
+      if (S.route.name === "event" && (!S.invite || S.invite.id !== S.route.id)) {
+        fetch("/api/invite?id=" + encodeURIComponent(S.route.id)).then(function (r) { return r.json(); })
+          .then(function (d) { S.invite = d.invite ? Object.assign({ id: S.route.id }, d.invite) : null; render(); }, function () {});
+      }
+      render(); return;
+    }
+    if (!S.profile) { render(); return; }
     var r = S.route;
     if (r.name === "home") {
       render();
       api("/api/events").then(function (d) { S.events = d.events; render(); }, showErr);
+    } else if (r.name === "new") {
+      app.innerHTML = ""; render(); mountPicker("new", []); loadContacts();
     } else if (r.name === "event") {
-      if (S.ev && S.ev.event.id === r.id) { render(); return; }
-      S.ev = null; render();
-      loadEvent(r.id);
+      if (S.ev && S.ev.event && S.ev.event.id === r.id && prev.name === "event" && prev.id === r.id) { render(); afterEventRender(); return; }
+      if (!(prev.name === "event" && prev.id === r.id)) S.ex = { mode: "all" };
+      S.ev = null; render(); loadEvent(r.id);
     } else render();
   }
-  function loadEvent(id) {
+  function loadEvent(id, keepDraft) {
     return api("/api/event?id=" + encodeURIComponent(id)).then(function (d) {
-      S.ev = d; S.hl = null; S.sel = null;
+      S.ev = d; S.sel = null;
       S.cal = buildCal(d.event.start_date, d.event.end_date);
       S.weeks = []; S.cal.forEach(function (m) { m.weeks.forEach(function (w) { S.weeks.push(w); }); });
-      loadMine(d.mine); S.dirty = false;
-      render();
+      if (!keepDraft) { loadMine(d.mine); S.dirty = false; }
+      render(); afterEventRender();
     }, function (e) { S.ev = { error: e.message }; render(); });
   }
-  function showErr(e) { S.msg = e.message || String(e); S.msgErr = true; render(); }
+  function afterEventRender() {
+    if (S.openInvite && S.ev && S.ev.me && S.ev.me.can_invite) { S.openInvite = false; openInviteModal(); }
+  }
+  function showErr(e) { S.msg = e.message || String(e); S.msgErr = true; if (S.route.name === "new") setFormMsg(S.msg, true); else render(); }
 
   // ---------- top bar ----------
-  function initials(n) { return String(n || "?").trim().split(/\s+/).map(function (w) { return w.charAt(0); }).slice(0, 2).join("").toUpperCase() || "?"; }
   function topHTML() {
     var h = '<div class="wrap"><a class="brand" href="#/"><i aria-hidden="true"><b></b><b></b><b></b><b></b><b></b><b></b></i>Group Availability</a>';
     if (signedIn() && S.profile) {
@@ -319,6 +445,7 @@ a.ev .meta{font-size:13px;color:var(--muted)}
       h += '<div class="navright"><button class="avatar" data-act="menu" aria-haspopup="menu" aria-expanded="' + S.menu + '" aria-label="Account menu">' + img + "</button></div>";
       if (S.menu) {
         h += '<div class="menu" role="menu"><div class="who"><b>' + esc(S.profile.name) + "</b><span>" + esc(S.email) + "</span></div>" +
+          '<button role="menuitem" data-act="go" data-h="#/">My events</button>' +
           '<button role="menuitem" data-act="go" data-h="#/account">Account settings</button>' +
           '<button role="menuitem" data-act="clerkprofile">Sign-in &amp; security</button>' +
           '<button role="menuitem" data-act="signout">Sign out</button></div>';
@@ -331,130 +458,270 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     return h + "</div>";
   }
 
-  // ---------- pages ----------
-  function landingHTML() {
-    var invited = S.route.name === "event";
-    var demo = [
-      ["2","c-open",""],["3","c-open",""],["4","c-busy","1"],["5","c-busy","2"],["6","c-open",""],["7","c-all",""],["8","c-all",""],
-      ["9","c-all",""],["10","c-all",""],["11","c-tent","?1"],["12","c-open",""],["13","c-busy","1"],["14","c-open",""],["15","c-open",""],
-      ["16","c-busy","3"],["17","c-busy","2"],["18","c-open",""],["19","c-all",""],["20","c-all",""],["21","c-all",""],["22","c-all",""]
-    ];
-    var g = demo.map(function (x) {
-      return '<span class="sd ' + x[1] + '" style="cursor:default"><span class="n">' + x[0] + '</span>' + (x[2] ? '<span class="b">' + x[2] + "</span>" : "") + "</span>";
-    }).join("");
-    return '<section class="hero"><div>' +
-      (invited ? '<p class="chip go" style="display:inline-block;margin-bottom:12px">You\'ve been invited to an event</p>' : "") +
-      "<h1>" + (invited ? "Sign in to share when you're free." : "Find the weeks that work for everyone.") + "</h1>" +
-      "<p>" + (invited
-        ? "Sign in with Google, mark each week Free, Busy, Set days or Not Sure Yet, and the organizer sees the open days at a glance."
-        : "Invite your group, have everyone mark their weeks, and see which days are open, where the conflicts are, and the best stretch for your event.") + "</p>" +
-      '<button class="primary" data-act="signin">' + (invited ? "Sign in to respond" : "Get started with Google") + "</button>" +
-      "</div>" +
-      '<div class="demo" aria-hidden="true"><div class="t"><span>Nov 2026</span><span class="lbl">Conflicts per day</span></div>' +
-      '<div class="g sumcal">' + g + "</div></div></section>" +
-      '<section class="features">' +
-      '<div class="card"><h3>Week by week, or a whole month</h3><p>Mark each week Free, Busy, Not Sure Yet, or tap the exact days you can make.</p></div>' +
-      '<div class="card"><h3>Open days at a glance</h3><p>A shared calendar shows open days in green and conflicts in red, with the count on each day.</p></div>' +
-      '<div class="card"><h3>Best windows for your event</h3><p>Set how long the event runs and see the stretches where the fewest people have a conflict.</p></div>' +
-      "</section>";
+  // ---------- landing / onboarding / account ----------
+  function demoCal() {
+    var demo = [["2","c-open"],["3","c-open"],["4","c-busy","1"],["5","c-busy","2"],["6","c-open"],["7","c-all"],["8","c-all"],
+      ["9","c-all"],["10","c-all"],["11","c-tent","?1"],["12","c-open"],["13","c-busy","1"],["14","c-open"],["15","c-open"],
+      ["16","c-busy","3"],["17","c-busy","2"],["18","c-open"],["19","c-all hl"],["20","c-all hl"],["21","c-all hl"],["22","c-all"]];
+    return demo.map(function (x) { return '<span class="sd ' + x[1] + '"><span class="n">' + x[0] + "</span>" + (x[2] ? '<span class="b">' + x[2] + "</span>" : "") + "</span>"; }).join("");
   }
-
+  function landingHTML() {
+    var inv = S.route.name === "event" ? S.invite : null, invited = S.route.name === "event";
+    var h = '<section class="hero"><div>';
+    if (inv) {
+      h += '<div class="invitecard"><div class="from">' + esc(inv.organizer || "The organizer") + " invited you to help plan</div>" +
+        '<h1 style="font-size:clamp(28px,4.5vw,44px);margin:4px 0 6px">' + esc(inv.title) + "</h1>" +
+        '<div class="lbl" style="font-size:14px">' + (inv.final_start ? "Dates: " + esc(fmtSpan(inv.final_start, inv.final_end)) : "Choosing dates between " + esc(fmtSpan(inv.start_date, inv.end_date))) +
+        (inv.location ? " · " + esc(inv.location) : "") + "</div>" +
+        (inv.invite_message ? "<blockquote>" + esc(inv.invite_message) + "</blockquote>" : "") + "</div>" +
+        (inv.description ? '<p style="white-space:pre-line">' + esc(inv.description) + "</p>" : "") +
+        '<button class="primary" data-act="signin">Sign in with Google to respond</button>';
+    } else if (invited) {
+      h += "<h1>You've been invited to <em>plan an event</em>.</h1><p>Sign in with Google to see the details and share when you're free.</p>" +
+        '<button class="primary" data-act="signin">Sign in to respond</button>';
+    } else {
+      h += "<h1>Find the dates that work for <em>everyone</em>.</h1>" +
+        "<p>Invite your group, collect availability week by week, and see open days, conflicts and the best stretch for your event, all in one place.</p>" +
+        '<button class="primary" data-act="signin">Get started with Google</button>';
+    }
+    h += '</div><div class="demo" aria-hidden="true"><div class="t"><span>Nov 2026</span><span class="lbl">People busy each day</span></div><div class="sumcal">' + demoCal() + "</div></div></section>";
+    if (!invited) {
+      h += '<section class="features">' +
+        '<div class="card"><h3>Invite and RSVP</h3><p>Send one link. People say whether they plan to come, then share their availability.</p></div>' +
+        '<div class="card"><h3>Week by week, or a whole month</h3><p>Mark weeks Free, Busy or Not Sure Yet, or tap the exact days you can make.</p></div>' +
+        '<div class="card"><h3>Pick the best window</h3><p>See conflicts per day and the stretches that suit your event length, then set the dates.</p></div>' +
+        "</section>";
+    }
+    return h;
+  }
   function onboardingHTML() {
-    return '<div class="narrow" style="margin:24px auto 0"><div class="card" style="padding:24px">' +
+    return '<div class="narrow" style="margin:28px auto 0"><div class="card" style="padding:24px">' +
       "<h1>Welcome! What should we call you?</h1>" +
-      '<p class="sub">This is the name other people see on your answers. You can change it later in Account settings.</p>' +
+      '<p class="sub">This is the name other people see in your events. You can change it any time in Account settings.</p>' +
       '<form data-form="profile"><div class="field"><label class="lbl" for="pname">Your name</label>' +
       '<input id="pname" name="name" required maxlength="80" autocomplete="name" value="' + esc(S.suggestedName) + '"></div>' +
       '<button class="primary" type="submit">Continue</button>' + msgHTML() + "</form></div></div>";
   }
-
   function accountHTML() {
     return '<div class="narrow"><h1>Account settings</h1><p class="sub">Signed in as ' + esc(S.email) + "</p>" +
-      '<div class="card"><form data-form="profile"><div class="field"><label class="lbl" for="pname">Name shown to the group</label>' +
+      '<div class="card"><h2>Profile</h2><form data-form="profile"><div class="field"><label class="lbl" for="pname">Name shown to others</label>' +
       '<input id="pname" name="name" required maxlength="80" value="' + esc(S.profile.name) + '"></div>' +
       '<button class="primary" type="submit">Save name</button>' + msgHTML() + "</form></div>" +
-      '<div class="card"><h2>Sign-in &amp; security</h2><p class="msg" style="margin:0 0 10px">Your Google account, email addresses and sessions are managed by our sign-in provider.</p>' +
+      '<div class="card"><h2>Sign-in &amp; security</h2><p class="msg" style="margin:0 0 12px">Your Google account, email addresses and active sessions.</p>' +
       '<div class="row"><button data-act="clerkprofile">Manage sign-in</button><button data-act="signout" class="ghost">Sign out</button></div></div></div>';
   }
+  function msgHTML() { return S.msg ? '<p class="msg' + (S.msgErr ? " err" : " ok") + '" role="status">' + esc(S.msg) + "</p>" : ""; }
 
-  function msgHTML() { return S.msg ? '<p class="msg' + (S.msgErr ? " err" : "") + '" role="status">' + esc(S.msg) + "</p>" : ""; }
-
+  // ---------- home ----------
+  function myStatusChip(e) {
+    if (e.rsvp === "no" || e.attend === "not_going") return '<span class="chip no">Not going</span>';
+    if (e.final_start) return e.attend === "going" ? '<span class="chip go">Going</span>' : '<span class="chip todo">Confirm attendance</span>';
+    if (!e.rsvp && !e.me_responded) return '<span class="chip todo">Reply to invite</span>';
+    return e.me_responded ? '<span class="chip go">Availability shared</span>' : '<span class="chip todo">Add availability</span>';
+  }
   function homeHTML() {
     var h = '<div class="head"><div><h1>My events</h1><p class="sub" style="margin:0">Events you organize or have been invited to.</p></div>' +
       '<button class="primary" data-act="go" data-h="#/new">New event</button></div>' + msgHTML();
     if (!S.events) return h + '<p class="msg">Loading your events…</p>';
     if (!S.events.length) {
-      return h + '<div class="card empty"><h2>No events yet</h2><p class="sub">Create an event, invite people, and collect everyone\'s availability in one place.</p>' +
+      return h + '<div class="card empty"><h2>No events yet</h2><p class="sub">Create an event, invite people and collect everyone\'s availability in one place.</p>' +
         '<button class="primary" data-act="go" data-h="#/new">Create your first event</button></div>';
     }
     h += '<div class="events">';
     S.events.forEach(function (e) {
+      var when = e.final_start ? fmtSpan(e.final_start, e.final_end) : "Planning · " + fmtSpan(e.start_date, e.end_date);
+      var role = e.is_owner || e.role === "owner" ? "Organizer" : e.role === "admin" ? "Co-organizer" : "Invited" + (e.owner_name ? " by " + e.owner_name : "");
       h += '<a class="ev" href="#/e/' + esc(e.id) + '"><h3>' + esc(e.title) + "</h3>" +
-        '<div class="meta">' + esc(fmtSpan(e.start_date, e.end_date)) + " · " + esc(fmtBlockAdj(e.block_days)) + " event</div>" +
-        '<div class="chips"><span class="chip">' + (e.is_owner ? "Organizer" : "Invited" + (e.owner_name ? " by " + esc(e.owner_name) : "")) + "</span>" +
-        (e.me_responded ? '<span class="chip go">You responded</span>' : '<span class="chip todo">Needs your answers</span>') +
-        '<span class="chip">' + e.responded + " responded" + (e.invited ? " · " + e.invited + " invited" : "") + "</span></div></a>";
+        '<div class="meta">' + esc(when) + (e.location ? " · " + esc(e.location) : "") + "</div>" +
+        '<div class="chips"><span class="chip acc">' + esc(role) + "</span>" + myStatusChip(e) +
+        '<span class="chip">' + e.going + " of " + e.members + " planning to go</span></div></a>";
     });
     return h + "</div>";
   }
 
-  // ----- event form (create / edit) -----
+  // ---------- event forms ----------
   function defaultDates() {
     var n = new Date(), y = n.getFullYear(), m = n.getMonth() + 1;
-    var s = Date.UTC(y, m, 1), e = Date.UTC(y, m + 4, 0);
-    return [d2s(s), d2s(e)];
+    return [d2s(Date.UTC(y, m, 1)), d2s(Date.UTC(y, m + 4, 0))];
   }
-  function formHTML(ev) {
-    var isNew = !ev, dd = defaultDates();
-    var v = ev || { title: "", description: "", start_date: dd[0], end_date: dd[1], block_days: 7, open_join: true, invitees: [] };
+  function detailsFields(v) {
     var b = +v.block_days || 1, unit = b % 7 === 0 ? "weeks" : "days", amt = unit === "weeks" ? b / 7 : b;
-    var h = '<div class="narrow">' + (isNew ? '<a class="crumb" href="#/">← My events</a><h1>New event</h1><p class="sub">Set the period to poll, how long the event needs, and who to invite.</p>'
-      : "") +
-      '<form data-form="event" class="card" style="padding:18px">' +
-      '<div class="field"><label class="lbl" for="ftitle">Event name</label><input id="ftitle" name="title" required maxlength="120" placeholder="Family trip, offsite, game weekend…" value="' + esc(v.title) + '"></div>' +
-      '<div class="field"><label class="lbl" for="fdesc">Details (optional)</label><textarea id="fdesc" name="description" maxlength="1000" placeholder="What it is, where, anything people should know">' + esc(v.description) + "</textarea></div>" +
-      '<h2 style="margin-top:6px">When</h2><div class="grid2">' +
-      '<div class="field"><label class="lbl" for="fstart">Poll from</label><input type="date" id="fstart" name="start_date" required value="' + esc(v.start_date) + '"></div>' +
-      '<div class="field"><label class="lbl" for="fend">Poll until</label><input type="date" id="fend" name="end_date" required value="' + esc(v.end_date) + '"></div>' +
+    return '<div class="field"><label class="lbl" for="ftitle">Event name</label><input id="ftitle" name="title" required maxlength="120" placeholder="Ski trip, offsite, game weekend…" value="' + esc(v.title) + '"></div>' +
+      '<div class="field"><label class="lbl" for="floc">Location</label><input id="floc" name="location" maxlength="200" placeholder="City, venue or “TBD”" value="' + esc(v.location || "") + '"></div>' +
+      '<div class="field"><label class="lbl" for="fdesc">Description</label><textarea id="fdesc" name="description" maxlength="2000" placeholder="What it is and anything people should know">' + esc(v.description || "") + "</textarea></div>" +
+      '<div class="grid2">' +
+      '<div class="field"><label class="lbl" for="fstart">Poll availability from</label><input type="date" id="fstart" name="start_date" required value="' + esc(v.start_date) + '"></div>' +
+      '<div class="field"><label class="lbl" for="fend">Until</label><input type="date" id="fend" name="end_date" required value="' + esc(v.end_date) + '"></div>' +
       '<div class="field"><label class="lbl" for="famt">Event length</label><div class="row" style="flex-wrap:nowrap">' +
       '<input type="number" id="famt" name="block_amt" min="1" max="400" required value="' + amt + '" style="max-width:90px">' +
-      '<select id="funit" name="block_unit" style="min-height:38px"><option value="days"' + (unit === "days" ? " selected" : "") + '>days</option><option value="weeks"' + (unit === "weeks" ? " selected" : "") + ">weeks</option></select></div></div></div>" +
-      '<p class="msg" style="margin:-4px 0 14px">The summary uses the event length to find the best stretches of time.</p>' +
-      '<h2>Who</h2><div class="field"><label class="lbl" for="finv">Invite by email (comma or one per line)</label>' +
-      '<textarea id="finv" name="invitees" placeholder="sam@gmail.com, alex@example.com">' + esc((v.invitees || []).join("\n")) + "</textarea></div>" +
-      '<label class="check"><input type="checkbox" name="open_join"' + (v.open_join ? " checked" : "") + "><span>Anyone with the link can join<br><span class=\"lbl\">Handy for sharing in a group chat. Turn off to limit the event to the emails above.</span></span></label>" +
-      '<div class="row" style="margin-top:16px"><button class="primary" type="submit"' + (S.saving ? " disabled" : "") + ">" + (isNew ? "Create event" : "Save changes") + "</button>" +
-      (isNew ? '<a href="#/">Cancel</a>' : "") + "</div>" + msgHTML() + "</form>";
-    if (!isNew) {
-      h += '<div class="card"><h2>Delete event</h2><p class="msg" style="margin:0 0 10px">Removes the event and everyone\'s answers. This can\'t be undone.</p>' +
-        (S.delConfirm
-          ? '<div class="row"><button class="danger" data-act="delete">Yes, delete it</button><button data-act="delcancel">Keep it</button></div>'
-          : '<button class="danger" data-act="delask">Delete event…</button>') + "</div>";
+      '<select id="funit" name="block_unit" style="min-height:38px;width:auto"><option value="days"' + (unit === "days" ? " selected" : "") + '>days</option><option value="weeks"' + (unit === "weeks" ? " selected" : "") + ">weeks</option></select></div></div></div>" +
+      '<p class="msg" style="margin:-4px 0 4px">The group summary uses the event length to suggest the best windows.</p>';
+  }
+  function sharingFields(v) {
+    var h = '<fieldset><legend>Schedule privacy</legend>';
+    Object.keys(PRIVACY).forEach(function (k) {
+      h += '<label class="radio"><input type="radio" name="privacy" value="' + k + '"' + (v.privacy === k ? " checked" : "") + "><span><b>" + PRIVACY[k][0] + "</b><small>" + PRIVACY[k][1] + "</small></span></label>";
+    });
+    h += '</fieldset><fieldset><legend>Who can invite people</legend>' +
+      '<label class="radio"><input type="radio" name="invite_policy" value="organizers"' + (v.invite_policy !== "anyone" ? " checked" : "") + '><span><b>Organizers only</b><small>Only you and co-organizers see the invite buttons.</small></span></label>' +
+      '<label class="radio"><input type="radio" name="invite_policy" value="anyone"' + (v.invite_policy === "anyone" ? " checked" : "") + '><span><b>Anyone in the event</b><small>Guests can copy the link and invite others too.</small></span></label></fieldset>' +
+      '<label class="check"><input type="checkbox" name="open_join"' + (v.open_join !== false ? " checked" : "") + "><span><b>Anyone with the link can join</b><small>Handy for group chats. Turn off to limit the event to people on the invite list.</small></span></label>";
+    return h;
+  }
+  function readEventForm(f) {
+    var amt = Math.max(1, Math.round(+f.block_amt.value || 1)), pv = f.querySelector("input[name=privacy]:checked"), ip = f.querySelector("input[name=invite_policy]:checked");
+    return {
+      title: f.title.value, location: f.location.value, description: f.description.value,
+      start_date: f.start_date.value, end_date: f.end_date.value,
+      block_days: f.block_unit.value === "weeks" ? amt * 7 : amt,
+      privacy: pv ? pv.value : "everyone", invite_policy: ip ? ip.value : "organizers",
+      open_join: f.open_join ? f.open_join.checked : true,
+      invite_message: f.invite_message ? f.invite_message.value : ""
+    };
+  }
+  function newEventHTML() {
+    var dd = defaultDates();
+    var v = { title: "", location: "", description: "", start_date: dd[0], end_date: dd[1], block_days: 7, privacy: "everyone", invite_policy: "organizers", open_join: true };
+    return '<div class="narrow"><a class="crumb" href="#/">← My events</a><h1>New event</h1><p class="sub">Set the period to poll, how long the event runs and who to invite. You can change all of this later.</p>' +
+      '<form data-form="create">' +
+      '<div class="card"><h2>Details</h2>' + detailsFields(v) + "</div>" +
+      '<div class="card"><h2>Invite people</h2><div class="field"><span class="lbl">People</span>' + pickerHTML("new", "Type a name or email, or paste a list") +
+      '<span class="msg">Pick from people you\'ve planned with before, or add any email address. Separate several with commas.</span></div>' +
+      '<div class="field"><label class="lbl" for="fmsg">Message to include in the invite (optional)</label><textarea id="fmsg" name="invite_message" maxlength="1000" placeholder="Hey all, let\'s find a weekend for the ski trip!"></textarea></div></div>' +
+      '<div class="card"><h2>Sharing</h2>' + sharingFields(v) + "</div>" +
+      '<div class="row"><button class="primary" type="submit">Create event</button><a href="#/">Cancel</a></div></form></div>';
+  }
+
+  // ---------- people helpers ----------
+  function people() { return (S.ev && S.ev.people) || []; }
+  function personBy(pid) { return people().find(function (p) { return p.pid === pid; }); }
+  function roleLabel(r) { return r === "owner" ? "Organizer" : r === "admin" ? "Co-organizer" : "Guest"; }
+  function personRow(p, extra) {
+    return '<div class="person"><span class="av">' + esc(initials(p.name)) + '</span><span class="nm">' + esc(p.name) + (p.me ? " (you)" : "") +
+      (p.pending ? ' <span class="lbl">· not signed in yet</span>' : "") + "</span>" +
+      (p.role !== "guest" ? '<span class="chip acc tag">' + roleLabel(p.role) + "</span>" : extra ? '<span class="tag">' + extra + "</span>" : "") + "</div>";
+  }
+  function groupsFor() {
+    var ev = S.ev.event, ps = people();
+    if (ev.final_start) {
+      return [
+        ["Going", ps.filter(function (p) { return p.attend === "going"; })],
+        ["Waiting to confirm", ps.filter(function (p) { return p.attend !== "going" && p.attend !== "not_going" && p.rsvp !== "no"; })],
+        ["Can't go", ps.filter(function (p) { return p.attend === "not_going" || p.rsvp === "no"; })]
+      ];
     }
+    return [
+      ["Planning to go", ps.filter(function (p) { return p.rsvp === "yes"; })],
+      ["Hasn't replied", ps.filter(function (p) { return !p.rsvp; })],
+      ["Not going", ps.filter(function (p) { return p.rsvp === "no"; })]
+    ];
+  }
+  function whosInHTML() {
+    var h = '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Who\'s in</h2>' +
+      (S.ev.me.can_invite ? '<button class="sm" data-act="invite">Invite people</button>' : "") + "</div>";
+    groupsFor().forEach(function (g) {
+      if (!g[1].length) return;
+      h += '<div class="group"><h3>' + g[0] + " · " + g[1].length + '</h3><div class="plist">' +
+        g[1].map(function (p) { return personRow(p, !S.ev.event.final_start && p.rsvp === "yes" && !p.responded ? '<span class="lbl">no availability yet</span>' : ""); }).join("") + "</div></div>";
+    });
     return h + "</div>";
   }
 
-  // ----- event page -----
+  // ---------- event page ----------
+  function inviteLink() { return location.origin + location.pathname + "#/e/" + S.ev.event.id; }
   function eventHTML() {
     var r = S.route;
     if (!S.ev) return '<p class="msg">Loading event…</p>';
     if (S.ev.error) return '<a class="crumb" href="#/">← My events</a><div class="card"><h2>Can\'t open this event</h2><p class="msg err">' + esc(S.ev.error) + "</p></div>";
-    var e = S.ev.event, tab = r.tab;
-    if (tab === "edit" && !e.is_owner) tab = "respond";
-    var link = location.origin + location.pathname + "#/e/" + e.id;
-    var h = '<a class="crumb" href="#/">← My events</a><div class="head" style="margin-bottom:0"><div style="min-width:0"><h1>' + esc(e.title) + "</h1>" +
-      '<p class="sub" style="margin:0">' + esc(fmtSpan(e.start_date, e.end_date)) + " · " + esc(fmtBlockAdj(e.block_days)) + " event</p>" +
-      (e.description ? '<p style="margin:8px 0 0;max-width:70ch;white-space:pre-line">' + esc(e.description) + "</p>" : "") + "</div>" +
-      '<div class="share" style="max-width:440px;width:100%"><input id="sharelink" readonly value="' + esc(link) + '" aria-label="Invite link"><button data-act="copy">Copy invite link</button></div></div>';
-    h += '<nav class="tabs"><a href="#/e/' + e.id + '" class="' + (tab === "respond" ? "on" : "") + '">My availability</a>' +
+    var e = S.ev.event, me = S.ev.me, tab = r.tab;
+    if (tab === "settings" && !me.is_admin) tab = "overview";
+    var when = e.final_start
+      ? '<span><b style="color:var(--fg)">' + esc(fmtSpan(e.final_start, e.final_end)) + "</b></span>"
+      : "<span>Planning · polling " + esc(fmtSpan(e.start_date, e.end_date)) + "</span>";
+    var h = '<a class="crumb" href="#/">← My events</a><div class="ehead"><div style="min-width:0;flex:1">' +
+      "<h1>" + esc(e.title) + '</h1><div class="meta">' + when + "<span>" + esc(fmtBlockAdj(e.block_days)) + " event</span>" +
+      (e.location ? "<span>📍 " + esc(e.location) + "</span>" : "") + "</div>" +
+      (me.can_invite ? '<div class="row"><button class="sm" data-act="copy-link">Copy invite link</button><button class="sm" data-act="invite">Invite people</button></div>' : "") +
+      "</div>" + (me.is_admin ? '<button data-act="go" data-h="#/e/' + e.id + '/settings"' + (tab === "settings" ? ' aria-current="page"' : "") + ">Event settings</button>" : "") + "</div>";
+    h += '<nav class="tabs" aria-label="Event"><a href="#/e/' + e.id + '" class="' + (tab === "overview" ? "on" : "") + '">Overview</a>' +
+      '<a href="#/e/' + e.id + '/availability" class="' + (tab === "availability" ? "on" : "") + '">My availability</a>' +
       '<a href="#/e/' + e.id + '/summary" class="' + (tab === "summary" ? "on" : "") + '">Group summary</a>' +
-      (e.is_owner ? '<a href="#/e/' + e.id + '/edit" class="' + (tab === "edit" ? "on" : "") + '">Edit event</a>' : "") + "</nav>";
+      (tab === "settings" ? '<a href="#/e/' + e.id + '/settings" class="on">Settings</a>' : "") + "</nav>";
     if (tab === "summary") return h + summaryHTML();
-    if (tab === "edit") return h + formHTML(e);
-    return h + respondHTML();
+    if (tab === "availability") return h + respondHTML();
+    if (tab === "settings") return h + settingsHTML();
+    return h + overviewHTML();
   }
 
-  // ----- respond (my availability) -----
+  function promptHTML() {
+    var e = S.ev.event, me = S.ev.me;
+    if (e.final_start && me.rsvp !== "no" && !me.attend) {
+      return '<div class="prompt"><h2>The dates are set: ' + esc(fmtSpan(e.final_start, e.final_end)) + "</h2>" +
+        '<p class="sub" style="margin:0 0 12px">Can you make it?</p><div class="row"><button class="primary" data-act="attend" data-v="going">I\'m going</button><button data-act="attend" data-v="not_going">I can\'t make it</button></div></div>';
+    }
+    if (!me.rsvp && !e.final_start) {
+      return '<div class="prompt"><div class="lbl">' + esc(e.owner_name || "The organizer") + " invited you to help plan</div><h2 style=\"font-size:20px\">" + esc(e.title) + "</h2>" +
+        (e.invite_message ? "<blockquote>" + esc(e.invite_message) + "</blockquote>" : "") +
+        '<p style="margin:8px 0 12px"><b>Are you planning to go?</b> If yes, you\'ll share which weeks work for you next.</p>' +
+        '<div class="row"><button class="primary" data-act="rsvp" data-v="yes">Yes, I\'m planning to go</button><button data-act="rsvp" data-v="no">No, I can\'t make it</button></div></div>';
+    }
+    return "";
+  }
+  function youHTML() {
+    var e = S.ev.event, me = S.ev.me;
+    var answered = answeredCount(), total = S.weeks.length;
+    var rows = [];
+    rows.push(["Your role", roleLabel(me.role), ""]);
+    rows.push(["Planning to go", me.rsvp === "yes" ? '<span class="v ok">Yes</span>' : me.rsvp === "no" ? '<span class="v no">No</span>' : '<span class="v todo">Not answered</span>',
+      me.rsvp ? '<button class="link" data-act="rsvp" data-v="' + (me.rsvp === "yes" ? "no" : "yes") + '">Change to ' + (me.rsvp === "yes" ? "no" : "yes") + "</button>" : ""]);
+    if (me.rsvp !== "no") {
+      rows.push(["Your availability", me.responded ? '<span class="v ok">' + answered + " of " + total + " weeks</span>" : '<span class="v todo">Not shared yet</span>',
+        '<a href="#/e/' + e.id + '/availability" style="font-size:13px;font-weight:600">' + (me.responded ? "Update" : "Add now") + "</a>"]);
+    }
+    if (e.final_start) {
+      rows.push(["Event dates", me.attend === "going" ? '<span class="v ok">Going</span>' : me.attend === "not_going" ? '<span class="v no">Not going</span>' : '<span class="v todo">Please confirm</span>',
+        me.attend ? '<button class="link" data-act="attend" data-v="' + (me.attend === "going" ? "not_going" : "going") + '">Change</button>' : ""]);
+    }
+    rows.push(["Schedule privacy", esc(PRIVACY[e.privacy] ? PRIVACY[e.privacy][0] : ""), ""]);
+    var h = '<div class="card"><h2>You</h2><div class="statuslist">';
+    rows.forEach(function (r) {
+      h += '<div class="st"><div><div class="k">' + r[0] + '</div><div class="v">' + r[1] + "</div></div>" + (r[2] ? "<div>" + r[2] + "</div>" : "") + "</div>";
+    });
+    return h + "</div></div>";
+  }
+  function aboutHTML() {
+    var e = S.ev.event;
+    var h = '<div class="card"><h2>About this event</h2><dl class="kv">' +
+      "<dt>Organizer</dt><dd>" + esc(e.owner_name || "—") + "</dd>" +
+      (e.location ? "<dt>Location</dt><dd>" + esc(e.location) + "</dd>" : "") +
+      "<dt>Dates</dt><dd>" + (e.final_start ? "<b>" + esc(fmtSpan(e.final_start, e.final_end)) + "</b>" : "Not set yet · polling " + esc(fmtSpan(e.start_date, e.end_date))) + "</dd>" +
+      "<dt>Length</dt><dd>" + esc(fmtBlockAdj(e.block_days)) + "</dd></dl>" +
+      (e.description ? '<p style="white-space:pre-line;margin:14px 0 0">' + esc(e.description) + "</p>" : "");
+    if (S.ev.me.is_admin && !e.final_start) {
+      h += '<p class="msg" style="margin-top:14px">When you\'re ready, pick dates from the <a href="#/e/' + e.id + '/summary">group summary</a> or in <a href="#/e/' + e.id + '/settings">settings</a>.</p>';
+    }
+    return h + "</div>";
+  }
+  function updatesHTML() {
+    var me = S.ev.me, ups = S.ev.updates || [];
+    var h = '<div class="card"><h2>Updates</h2>';
+    if (me.is_admin) {
+      h += '<form data-form="update" style="margin-bottom:8px"><div class="field" style="margin-bottom:8px"><label class="lbl" for="updbody">Post an update for everyone</label>' +
+        '<textarea id="updbody" name="body" maxlength="4000" placeholder="Share news, plans or reminders" style="min-height:70px"></textarea></div>' +
+        '<button class="primary sm" type="submit">Post update</button></form>';
+    }
+    if (!ups.length) h += '<p class="msg">' + (me.is_admin ? "No updates yet. Posts appear here for everyone in the event." : "No updates from the organizer yet.") + "</p>";
+    ups.forEach(function (u) {
+      h += '<div class="upd"><div class="by"><b style="color:var(--fg)">' + esc(u.author) + "</b><span>" + esc(ago(u.created_at)) + "</span>" +
+        (u.can_delete ? '<button class="link" style="margin-left:auto" data-act="upd-del" data-id="' + esc(u.id) + '">Remove</button>' : "") + "</div><p>" + esc(u.body) + "</p></div>";
+    });
+    return h + "</div>";
+  }
+  function overviewHTML() {
+    return promptHTML() + msgHTML() + '<div class="dash"><div>' + aboutHTML() + updatesHTML() + "</div><div>" + youHTML() + whosInHTML() + "</div></div>";
+  }
+
+  // ---------- my availability ----------
   function loadMine(rec) {
     S.draft = { weeks: clone(rec && rec.weeks), months: clone(rec && rec.months) };
     S.cal.forEach(function (m) {
@@ -473,13 +740,8 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     S.cal.forEach(function (m) { m.weeks.forEach(function (w) { if (effective(w, m.key).s) n++; }); });
     return n;
   }
-  function opts(cur) {
-    return STATUS.map(function (s) { return '<option value="' + s[0] + '"' + (cur === s[0] ? " selected" : "") + ">" + s[1] + "</option>"; }).join("");
-  }
-  function legendHTML() {
-    return '<div class="legend">' + STATUS.map(function (s) { return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>"; }).join("") +
-      '<span><i class="st-none"></i>No response</span></div>';
-  }
+  function opts(cur) { return STATUS.map(function (s) { return '<option value="' + s[0] + '"' + (cur === s[0] ? " selected" : "") + ">" + s[1] + "</option>"; }).join(""); }
+  function dowHead() { return DOW.map(function (d) { return '<div class="hd"><span class="lg">' + d + '</span><span class="s1">' + d.charAt(0) + "</span></div>"; }).join(""); }
   function respondMonth(m) {
     var mset = monthSet(m.key);
     var h = '<section class="card"><div class="mhead"><h2>' + esc(m.label) + "</h2>" +
@@ -487,44 +749,48 @@ a.ev .meta{font-size:13px;color:var(--muted)}
       '<option value="">Set each week</option>' + opts(mset ? mset.s : "") + "</select></label></div>";
     if (mset && mset.s === "partial") h += '<p class="mdetail lbl">Tap the days you\'re free below. Untapped days count as busy.</p>';
     if (mset && mset.s === "tentative") {
-      h += '<label class="mdetail tdate"><span class="lbl">When do you think you will know?</span>' +
-        '<input type="date" data-field="date" data-m="' + m.key + '" value="' + esc(mset.date || "") + '"></label>';
+      h += '<label class="mdetail tdate"><span class="lbl">When do you think you will know?</span><input type="date" data-field="date" data-m="' + m.key + '" value="' + esc(mset.date || "") + '"></label>';
     }
-    h += '<div class="cal"><div class="hd l"></div><div class="hd l">Status</div>' +
-      DOW.map(function (d) { return '<div class="hd"><span class="lg">' + d + '</span><span class="sm">' + d.charAt(0) + "</span></div>"; }).join("");
+    h += '<div class="cal"><div class="hd l"></div><div class="hd l">Status</div>' + dowHead();
     m.weeks.forEach(function (w, i) {
       var wa = S.draft.weeks[w.key] || {}, val = mset ? mset.s : (wa.s || "");
-      h += '<div class="wk">Week ' + (i + 1) + "</div>" +
-        '<div class="ws"><select data-field="week" data-w="' + w.key + '" aria-label="Week ' + (i + 1) + " status (" + esc(w.label) + ')">' +
+      h += '<div class="wk">Week ' + (i + 1) + '</div><div class="ws"><select data-field="week" data-w="' + w.key + '" aria-label="Week ' + (i + 1) + " status (" + esc(w.label) + ')">' +
         '<option value="">Not set</option>' + opts(val) + "</select></div>";
       var e = effective(w, m.key), isP = e.s === "partial", picked = e.days || [];
       w.days.forEach(function (d, di) {
         var cls = "d " + (e.s ? ST_CLS[e.s] : "st-none") + (d.inMonth ? "" : " out") + (d.inRange ? "" : " off");
         if (isP && d.inRange) {
           var on = picked.indexOf(di) >= 0;
-          h += '<button class="' + cls + " tap" + (on ? " pk" : "") + '" data-act="day" data-w="' + w.key + '" data-i="' + di + '"' +
-            (mset ? ' data-m="' + m.key + '"' : "") + ' aria-pressed="' + on + '" aria-label="' + esc(fmtShort(d.iso)) + (on ? ", free" : ", not free") + '">' + d.n + "</button>";
+          h += '<button class="' + cls + " tap" + (on ? " pk" : "") + '" data-act="day" data-w="' + w.key + '" data-i="' + di + '"' + (mset ? ' data-m="' + m.key + '"' : "") +
+            ' aria-pressed="' + on + '" aria-label="' + esc(fmtShort(d.iso)) + (on ? ", free" : ", not free") + '">' + d.n + "</button>";
         } else h += '<div class="' + cls + '">' + d.n + "</div>";
       });
       if (!mset && wa.s === "partial") h += '<div class="hint">Tap the days you\'re free. Untapped days count as busy.</div>';
       if (!mset && wa.s === "tentative") {
-        h += '<label class="wdetail tdate"><span class="lbl">When do you think you will know?</span>' +
-          '<input type="date" data-field="date" data-w="' + w.key + '" value="' + esc(wa.date || "") + '"></label>';
+        h += '<label class="wdetail tdate"><span class="lbl">When do you think you will know?</span><input type="date" data-field="date" data-w="' + w.key + '" value="' + esc(wa.date || "") + '"></label>';
       }
     });
     return h + "</div></section>";
   }
+  function legendHTML() {
+    return '<div class="legend">' + STATUS.map(function (s) { return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>"; }).join("") + '<span><i class="st-none"></i>Not answered</span></div>';
+  }
   function respondHTML() {
-    var h = '<p class="sub">Set each week, or set a whole month and change any week that differs. For Set days, tap the days you\'re free.</p>' + legendHTML() + '<div class="months">';
+    var me = S.ev.me;
+    if (me.rsvp === "no") {
+      return msgHTML() + '<div class="card narrow"><h2>You said you can\'t make it</h2><p class="sub">You don\'t need to share availability. Changed your mind?</p><button class="primary" data-act="rsvp" data-v="yes">I\'m planning to go after all</button></div>';
+    }
+    var h = me.rsvp ? "" : promptHTML();
+    h += '<p class="sub">Set each week, or set a whole month and change any week that differs. For Set days, tap the days you\'re free.</p>' + legendHTML() + '<div class="months">';
     S.cal.forEach(function (m) { h += respondMonth(m); });
     h += "</div>";
     return h + '<div class="save"><span class="msg" style="margin:0">' + answeredCount() + " of " + S.weeks.length + " weeks answered" + (S.dirty ? " · unsaved changes" : "") + "</span>" +
-      '<button class="primary" data-act="save"' + (S.saving ? " disabled" : "") + ">" + (S.saving ? "Saving…" : "Save my answers") + "</button>" + msgHTML() + "</div>";
+      '<button class="primary" data-act="save"' + (S.saving ? " disabled" : "") + ">" + (S.saving ? "Saving…" : "Save my availability") + "</button>" + msgHTML() + "</div>";
   }
 
-  // ----- summary -----
-  function stateOn(person, wkKey, di) {
-    var a = person.weeks && person.weeks[wkKey];
+  // ---------- group summary ----------
+  function stateOn(weeks, wk, di) {
+    var a = weeks && weeks[wk];
     if (!a || !a.s) return "none";
     if (a.s === "open") return "free";
     if (a.s === "na") return "busy";
@@ -532,95 +798,154 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     if (a.s === "partial") return (a.days || []).indexOf(di) >= 0 ? "free" : "busy";
     return "none";
   }
-  function dayStats(wkKey, di) {
-    var st = { free: [], busy: [], tent: [], none: [] };
-    S.ev.people.forEach(function (p) {
-      var s = p.responded ? stateOn(p, wkKey, di) : "none";
-      st[s].push(p);
+  function participants() { return people().filter(function (p) { return p.rsvp !== "no"; }); }
+  // Per-day lists: named people plus counts of private (anonymous) schedules.
+  function dayStats(wk, di) {
+    var st = { free: [], busy: [], tent: [], none: [], anon: { free: 0, busy: 0, tent: 0, none: 0 } };
+    var withSched = {};
+    S.ev.schedules.forEach(function (s) {
+      var k = stateOn(s.weeks, wk, di);
+      var p = s.pid && personBy(s.pid);
+      if (p) { withSched[s.pid] = 1; st[k].push(p); } else st.anon[k]++;
     });
+    participants().forEach(function (p) { if (!p.responded && !withSched[p.pid]) st.none.push(p); });
+    st.n = function (k) { return st[k].length + st.anon[k]; };
     return st;
   }
-  function inRangeDays() {
+  function allDays() {
     var out = [];
     S.weeks.forEach(function (w) { w.days.forEach(function (d, di) { if (d.inRange) out.push({ iso: d.iso, w: w.key, i: di }); }); });
-    out.sort(function (a, b) { return a.iso < b.iso ? -1 : 1; });
-    return out;
+    return out.sort(function (a, b) { return a.iso < b.iso ? -1 : 1; });
   }
-  function bestWindows() {
-    var days = inRangeDays(), L = Math.max(1, +S.ev.event.block_days || 1);
-    var resp = S.ev.people.filter(function (p) { return p.responded; });
-    if (!resp.length || days.length < L) return [];
+  function exRange() {
+    var e = S.ev.event, x = S.ex;
+    if (x.mode === "month" && x.month) {
+      var p = x.month.split("-"), s = d2s(Date.UTC(+p[0], +p[1] - 1, 1)), f = d2s(Date.UTC(+p[0], +p[1], 0));
+      return [s < e.start_date ? e.start_date : s, f > e.end_date ? e.end_date : f];
+    }
+    if (x.mode === "range" && x.from && x.to && x.from <= x.to) return [x.from < e.start_date ? e.start_date : x.from, x.to > e.end_date ? e.end_date : x.to];
+    return [e.start_date, e.end_date];
+  }
+  function windowsIn(range, max) {
+    var days = allDays().filter(function (d) { return d.iso >= range[0] && d.iso <= range[1]; });
+    var L = Math.max(1, +S.ev.event.block_days || 1);
+    if (!S.ev.schedules.length || days.length < L) return { list: [], days: days.length, L: L };
     var cand = [];
     for (var i = 0; i + L <= days.length; i++) {
       var busy = {}, tent = {}, unk = {};
-      for (var j = i; j < i + L; j++) {
-        resp.forEach(function (p) {
-          var s = stateOn(p, days[j].w, days[j].i);
-          if (s === "busy") busy[p.id] = p; else if (s === "tent") tent[p.id] = p; else if (s === "none") unk[p.id] = p;
-        });
-      }
-      Object.keys(busy).forEach(function (k) { delete tent[k]; delete unk[k]; });
-      Object.keys(tent).forEach(function (k) { delete unk[k]; });
-      var vals = function (o) { return Object.keys(o).map(function (k) { return o[k]; }); };
-      cand.push({ start: days[i].iso, end: days[i + L - 1].iso, si: i, busy: vals(busy), tent: vals(tent), unk: vals(unk) });
+      S.ev.schedules.forEach(function (s, si) {
+        var worst = "free";
+        for (var j = i; j < i + L; j++) {
+          var k = stateOn(s.weeks, days[j].w, days[j].i);
+          if (k === "busy") { worst = "busy"; break; }
+          if (k === "tent") worst = "tent";
+          else if (k === "none" && worst !== "tent") worst = "none";
+        }
+        var key = s.pid || "anon" + si;
+        if (worst === "busy") busy[key] = s; else if (worst === "tent") tent[key] = s; else if (worst === "none") unk[key] = s;
+      });
+      cand.push({ start: days[i].iso, end: days[i + L - 1].iso, si: i, busy: busy, tent: tent, unk: unk,
+        nb: Object.keys(busy).length, nt: Object.keys(tent).length, nu: Object.keys(unk).length });
     }
-    cand.sort(function (a, b) { return (a.busy.length + a.unk.length) - (b.busy.length + b.unk.length) || a.busy.length - b.busy.length || a.tent.length - b.tent.length || a.si - b.si; });
+    cand.sort(function (a, b) { return (a.nb + a.nu) - (b.nb + b.nu) || a.nb - b.nb || a.nt - b.nt || a.si - b.si; });
     var picked = [];
-    for (var k = 0; k < cand.length && picked.length < 3; k++) {
+    for (var k = 0; k < cand.length && picked.length < max; k++) {
       var c = cand[k];
       if (picked.some(function (p) { return Math.abs(p.si - c.si) < L; })) continue;
       picked.push(c);
     }
-    return picked;
+    return { list: picked, days: days.length, L: L };
   }
-  function names(list) { return list.map(function (p) { return esc(p.name); }).join(", "); }
-  function summaryHTML() {
-    var people = S.ev.people, resp = people.filter(function (p) { return p.responded; });
-    var pending = people.filter(function (p) { return !p.responded; });
-    var e = S.ev.event;
-    var h = '<div class="grid2" style="margin-bottom:12px;align-items:start"><div class="card" style="margin:0"><h2>Who\'s in</h2>' +
-      '<p class="msg" style="margin:0 0 8px">' + resp.length + " of " + people.length + " responded</p>" +
-      '<div class="people">' + people.map(function (p) {
-        return '<span class="' + (p.me ? "me" : "") + (p.responded ? "" : " pend") + '">' + esc(p.name) + (p.me ? " (you)" : "") + (p.organizer ? " · organizer" : "") + (p.responded ? "" : " · no response") + "</span>";
-      }).join("") + "</div></div>";
-    h += '<div class="card" style="margin:0"><h2>Best ' + esc(fmtBlockAdj(e.block_days)) + " windows</h2>";
-    var wins = bestWindows();
-    if (!resp.length) h += '<p class="msg" style="margin:0">Windows appear once people respond.</p>';
-    else if (!wins.length) h += '<p class="msg" style="margin:0">The polling period is shorter than the event length.</p>';
-    else {
-      h += '<div class="windows">' + wins.map(function (w) {
-        var on = S.hl && S.hl.start === w.start;
-        var parts = [];
-        if (w.busy.length) parts.push(w.busy.length + " with conflicts: " + names(w.busy));
-        if (w.tent.length) parts.push(w.tent.length + " not sure: " + names(w.tent));
-        if (w.unk.length) parts.push(w.unk.length + " haven't answered these days: " + names(w.unk));
-        var s = parts.length ? parts.join(" · ") : "Everyone who responded is free";
-        return '<button class="win" data-act="hl" data-s="' + w.start + '" data-e="' + w.end + '" aria-pressed="' + !!on + '"><span class="r">' +
-          esc(fmtShort(w.start)) + " – " + esc(fmtShort(w.end)) + '</span><span class="s">' + s + "</span></button>";
-      }).join("") + "</div>" + (pending.length ? '<p class="msg">Not counting ' + pending.length + " who haven't responded.</p>" : "");
+  function whoText(map) {
+    var named = [], anon = 0;
+    Object.keys(map).forEach(function (k) { var s = map[k], p = s.pid && personBy(s.pid); if (p) named.push(p.name + (p.me ? " (you)" : "")); else anon++; });
+    if (anon) named.push(anon + (anon === 1 ? " person" : " people") + (named.length ? " more" : ""));
+    return named.join(", ");
+  }
+  function explorerHTML() {
+    var e = S.ev.event, me = S.ev.me, x = S.ex, range = exRange(), res = windowsIn(range, 5);
+    var h = '<div class="card"><h2 style="margin-bottom:2px">Best ' + esc(fmtBlockAdj(e.block_days)) + " windows</h2>" +
+      '<p class="msg" style="margin:0 0 12px">Ranked by fewest people busy or still unanswered. Pick a month or dates to look closer, and click a window to see it on the calendar.</p>';
+    h += '<div class="seg" role="group" aria-label="Look at"><button data-act="ex" data-mode="all" aria-pressed="' + (x.mode === "all") + '">Whole period</button>';
+    S.cal.forEach(function (m) { h += '<button data-act="ex" data-mode="month" data-m="' + m.key + '" aria-pressed="' + (x.mode === "month" && x.month === m.key) + '">' + esc(m.label) + "</button>"; });
+    h += '<button data-act="ex" data-mode="range" aria-pressed="' + (x.mode === "range") + '">Custom dates</button></div>';
+    if (x.mode === "range") {
+      h += '<div class="row" style="margin-bottom:12px"><label class="tdate"><span class="lbl">From</span><input type="date" data-field="exfrom" min="' + e.start_date + '" max="' + e.end_date + '" value="' + esc(x.from || e.start_date) + '"></label>' +
+        '<label class="tdate"><span class="lbl">To</span><input type="date" data-field="exto" min="' + e.start_date + '" max="' + e.end_date + '" value="' + esc(x.to || e.end_date) + '"></label></div>';
     }
-    h += "</div></div>";
-    h += '<div class="legend"><span><i style="background:color-mix(in srgb,var(--open) 55%,var(--card))"></i>Everyone free</span>' +
-      '<span><i style="background:color-mix(in srgb,var(--open) 30%,var(--card))"></i>No conflicts yet</span>' +
-      '<span><i class="st-na"></i>Conflicts (number = people busy)</span><span><i class="st-tentative"></i>Someone not sure</span>' +
-      '<span><i class="st-none"></i>No responses</span><span>Hover or tap a day for details</span></div>';
+    if (!S.ev.schedules.length) h += '<p class="msg">Windows appear once people share their availability.</p>';
+    else if (!res.list.length) h += '<p class="msg">This range is shorter than the ' + esc(fmtBlockAdj(e.block_days)) + " event.</p>";
+    else {
+      h += '<div class="wins">' + res.list.map(function (w) {
+        var parts = [];
+        if (w.nb) parts.push(w.nb + " busy: " + whoText(w.busy));
+        if (w.nt) parts.push(w.nt + " not sure: " + whoText(w.tent));
+        if (w.nu) parts.push(w.nu + " haven't answered: " + whoText(w.unk));
+        var on = S.hl && S.hl.start === w.start;
+        return '<div class="win' + (on ? " on" : "") + '"><button class="main" data-act="hl" data-s="' + w.start + '" data-e="' + w.end + '" aria-pressed="' + !!on + '"><span class="r">' +
+          esc(fmtSpan(w.start, w.end)) + '</span><span class="s">' + (parts.length ? esc(parts.join(" · ")) : "Everyone who shared availability is free") + "</span></button>" +
+          (me.is_admin ? '<button class="set" data-act="sched-set" data-s="' + w.start + '" data-e="' + w.end + '">Set as dates</button>' : "") + "</div>";
+      }).join("") + "</div>";
+    }
+    return h + "</div>";
+  }
+  function breakdownHTML() {
+    var range = exRange(), days = allDays().filter(function (d) { return d.iso >= range[0] && d.iso <= range[1]; });
+    var rows = [], anonAgg = null, openDays = 0;
+    var tally = function (weeks) { var t = { free: 0, busy: 0, tent: 0, none: 0 }; days.forEach(function (d) { t[stateOn(weeks, d.w, d.i)]++; }); return t; };
+    S.ev.schedules.forEach(function (s) {
+      var t = tally(s.weeks), p = s.pid && personBy(s.pid);
+      if (p) rows.push({ name: p.name + (p.me ? " (you)" : ""), t: t });
+      else { anonAgg = anonAgg || { n: 0, free: 0, busy: 0, tent: 0, none: 0 }; anonAgg.n++; ["free", "busy", "tent", "none"].forEach(function (k) { anonAgg[k] += t[k]; }); }
+    });
+    participants().forEach(function (p) { if (!p.responded) rows.push({ name: p.name + (p.me ? " (you)" : ""), t: { free: 0, busy: 0, tent: 0, none: days.length } }); });
+    days.forEach(function (d) { var st = dayStats(d.w, d.i); if (!st.n("busy") && !st.n("tent") && !st.n("none") && st.n("free")) openDays++; });
+    var bar = function (t) {
+      var n = days.length || 1;
+      return '<div class="bar" aria-hidden="true"><i style="width:' + (100 * t.free / n) + '%;background:var(--free)"></i><i style="width:' + (100 * t.tent / n) + '%;background:var(--unsure)"></i><i style="width:' + (100 * t.busy / n) + '%;background:var(--busy)"></i></div>';
+    };
+    var h = '<div class="card"><h2 style="margin-bottom:2px">' + esc(fmtSpan(range[0], range[1])) + "</h2>" +
+      '<p class="msg" style="margin:0 0 10px">' + days.length + " days · " + openDays + " with everyone free</p>";
+    if (!rows.length && !anonAgg) return h + '<p class="msg">Nobody has shared availability yet.</p></div>';
+    h += '<div class="scroll"><table class="tbl"><thead><tr><th>Person</th><th class="n">Free</th><th class="n">Not sure</th><th class="n">Busy</th><th class="n">No answer</th><th></th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      h += "<tr><td>" + esc(r.name) + '</td><td class="n">' + r.t.free + '</td><td class="n">' + r.t.tent + '</td><td class="n">' + r.t.busy + '</td><td class="n">' + r.t.none + "</td><td>" + bar(r.t) + "</td></tr>";
+    });
+    if (anonAgg) {
+      var avg = function (k) { return Math.round(anonAgg[k] / anonAgg.n); };
+      h += "<tr><td>" + anonAgg.n + " other" + (anonAgg.n === 1 ? "" : "s") + ' <span class="lbl">(private, average)</span></td><td class="n">' + avg("free") + '</td><td class="n">' + avg("tent") + '</td><td class="n">' + avg("busy") + '</td><td class="n">' + avg("none") + "</td><td>" +
+        bar({ free: avg("free"), tent: avg("tent"), busy: avg("busy") }) + "</td></tr>";
+    }
+    return h + "</tbody></table></div></div>";
+  }
+  function summaryHTML() {
+    var e = S.ev.event, range = exRange();
+    var h = msgHTML() + (S.ev.me.sees_details ? "" : '<p class="msg" style="margin:0 0 12px">This event shares totals only. You can see how many people are busy each day, but not who.</p>') +
+      '<div class="dash"><div>' + explorerHTML() + "</div><div>" + breakdownHTML() + "</div></div>";
+    h += '<div class="legend"><span><i style="background:color-mix(in srgb,var(--free) 52%,var(--card))"></i>Everyone free</span>' +
+      '<span><i style="background:color-mix(in srgb,var(--free) 26%,var(--card))"></i>No conflicts (some unanswered)</span>' +
+      '<span><i class="st-na"></i>Conflicts · number = people busy</span><span><i class="st-tentative"></i>Someone not sure</span>' +
+      '<span><i class="st-none"></i>No answers</span>' + (e.final_start ? '<span><i style="background:var(--accent)"></i>Event dates</span>' : "") +
+      "<span>Hover or tap a day for details</span></div>";
     h += '<div class="months">';
     S.cal.forEach(function (m) {
-      h += '<section class="card"><div class="mhead"><h2>' + esc(m.label) + '</h2></div><div class="sumcal">' +
-        DOW.map(function (d) { return '<div class="hd"><span class="lg">' + d + '</span><span class="sm">' + d.charAt(0) + "</span></div>"; }).join("");
+      var touches = m.weeks.some(function (w) { return w.days.some(function (d) { return d.inRange && d.iso >= range[0] && d.iso <= range[1]; }); });
+      if (!touches) return;
+      h += '<section class="card"><div class="mhead"><h2>' + esc(m.long) + '</h2></div><div class="sumcal">' + dowHead();
       m.weeks.forEach(function (w) {
         w.days.forEach(function (d, di) {
           if (!d.inRange) { h += '<div class="sd blank" aria-hidden="true"></div>'; return; }
-          var st = dayStats(w.key, di), R = st.free.length + st.busy.length + st.tent.length;
+          var st = dayStats(w.key, di), nb = st.n("busy"), nt = st.n("tent"), nf = st.n("free"), nn = st.n("none"), R = nb + nt + nf;
           var cls = "c-none", badge = "", style = "";
           if (!R) cls = "c-none";
-          else if (st.busy.length) { cls = "c-busy"; badge = String(st.busy.length); style = ' style="--lv:' + Math.round(25 + 45 * st.busy.length / Math.max(R, 1)) + '%"'; }
-          else if (st.tent.length) { cls = "c-tent"; badge = "?" + st.tent.length; }
-          else cls = st.none.length ? "c-open" : "c-all";
-          var hl = S.hl && d.iso >= S.hl.start && d.iso <= S.hl.end ? " hl" : "";
-          var sel = S.sel === d.iso ? " sel" : "";
-          var label = fmtShort(d.iso) + ": " + (R ? st.busy.length + " busy, " + st.tent.length + " not sure, " + st.free.length + " free" : "no responses");
-          h += '<button class="sd ' + cls + (d.inMonth ? "" : " out") + hl + sel + '"' + style + ' data-act="dayinfo" data-w="' + w.key + '" data-i="' + di + '" data-iso="' + d.iso + '" aria-label="' + esc(label) + '">' +
+          else if (nb) { cls = "c-busy"; badge = String(nb); style = ' style="--lv:' + Math.round(22 + 46 * nb / Math.max(R + nn, 1)) + '%"'; }
+          else if (nt) { cls = "c-tent"; badge = "?" + nt; }
+          else cls = nn ? "c-open" : "c-all";
+          var extra = (d.inMonth ? "" : " out") + (d.iso < range[0] || d.iso > range[1] ? " dim" : "") +
+            (S.hl && d.iso >= S.hl.start && d.iso <= S.hl.end ? " hl" : "") + (S.sel === d.iso ? " sel" : "") +
+            (e.final_start && d.iso >= e.final_start && d.iso <= e.final_end ? " final" : "");
+          var label = fmtShort(d.iso) + ": " + (R ? nb + " busy, " + nt + " not sure, " + nf + " free" : "no answers") + (nn ? ", " + nn + " not answered" : "");
+          h += '<button class="sd ' + cls + extra + '"' + style + ' data-act="dayinfo" data-w="' + w.key + '" data-i="' + di + '" data-iso="' + d.iso + '" aria-label="' + esc(label) + '">' +
             '<span class="n">' + d.n + "</span>" + (badge ? '<span class="b">' + badge + "</span>" : "") + "</button>";
         });
       });
@@ -628,18 +953,20 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     });
     return h + "</div>";
   }
-
-  // ----- tooltip -----
   function tipHTML(wk, di, iso) {
-    var st = dayStats(wk, di), w = S.ev.people;
-    var grp = function (title, list, extra) {
-      if (!list.length) return "";
-      return '<div class="grp"><b>' + title + " (" + list.length + ")</b><div>" + list.map(function (p) { return esc(p.name) + (extra ? extra(p) : ""); }).join("<br>") + "</div></div>";
+    var st = dayStats(wk, di);
+    var grp = function (title, list, n, extra) {
+      if (!list.length && !n) return "";
+      var names = list.map(function (p) { return esc(p.name) + (p.me ? " (you)" : "") + (extra ? extra(p) : ""); });
+      if (n) names.push('<span class="lbl">' + (list.length ? "+ " : "") + n + (n === 1 ? " person" : " people") + (S.ev.me.sees_details ? "" : " (private)") + "</span>");
+      return '<div class="grp"><b>' + title + " (" + (list.length + n) + ")</b><div>" + names.join("<br>") + "</div></div>";
     };
-    var tentNote = function (p) { var a = p.weeks[wk]; return a && a.date ? ' <span class="lbl">· knows by ' + esc(fmtDate(a.date)) + "</span>" : ""; };
-    return "<h4>" + esc(fmtDate(iso, true)) + "</h4>" +
-      grp("Busy", st.busy) + grp("Not sure yet", st.tent, tentNote) + grp("Free", st.free) + grp("No response", st.none) +
-      (w.length ? "" : '<div class="lbl">Nobody invited yet.</div>');
+    var tentNote = function (p) {
+      var s = S.ev.schedules.find(function (x) { return x.pid === p.pid; }), a = s && s.weeks[wk];
+      return a && a.date ? ' <span class="lbl">· knows by ' + esc(fmtDate(a.date)) + "</span>" : "";
+    };
+    return "<h4>" + esc(fmtDate(iso, true)) + "</h4>" + grp("Busy", st.busy, st.anon.busy) + grp("Not sure yet", st.tent, st.anon.tent, tentNote) +
+      grp("Free", st.free, st.anon.free) + grp("No answer", st.none, st.anon.none);
   }
   function showTip(el) {
     tip.innerHTML = tipHTML(el.getAttribute("data-w"), +el.getAttribute("data-i"), el.getAttribute("data-iso"));
@@ -651,6 +978,184 @@ a.ev .meta{font-size:13px;color:var(--muted)}
   }
   function hideTip() { tip.hidden = true; }
 
+  // ---------- settings ----------
+  function settingsHTML() {
+    var e = S.ev.event, me = S.ev.me;
+    var h = msgHTML() + '<div class="dash"><div>' +
+      '<form data-form="settings"><div class="card"><h2>Details</h2>' + detailsFields(e) + "</div>" +
+      '<div class="card"><h2>Sharing &amp; privacy</h2>' + sharingFields(e) +
+      '<div class="field"><label class="lbl" for="smsg">Invite message</label><textarea id="smsg" name="invite_message" maxlength="1000" placeholder="Shown to people when they open the invite">' + esc(e.invite_message || "") + "</textarea></div></div>" +
+      '<div class="row" style="margin-bottom:14px"><button class="primary" type="submit"' + (S.saving ? " disabled" : "") + ">Save settings</button></div></form>";
+    h += '<div class="card"><h2>Event dates</h2><p class="msg" style="margin:-6px 0 12px">Set the final dates once you\'ve picked a window. Everyone will be asked to confirm.</p>' +
+      '<form data-form="schedule" class="row"><label class="tdate"><span class="lbl">Start</span><input type="date" name="final_start" required value="' + esc(e.final_start || "") + '"></label>' +
+      '<label class="tdate"><span class="lbl">End</span><input type="date" name="final_end" required value="' + esc(e.final_end || "") + '"></label>' +
+      '<button class="primary sm" type="submit">' + (e.final_start ? "Update dates" : "Set dates") + "</button>" +
+      (e.final_start ? '<button type="button" class="sm" data-act="sched-clear">Back to planning</button>' : "") + "</form></div>";
+    if (me.is_owner) {
+      h += '<div class="card"><h2>Delete event</h2><p class="msg" style="margin:-6px 0 12px">Removes the event, its updates and everyone\'s answers. This can\'t be undone.</p>' +
+        (S.ask === "delete" ? '<div class="row"><button class="danger" data-act="delete">Yes, delete it</button><button data-act="ask" data-v="">Keep it</button></div>'
+          : '<button class="danger" data-act="ask" data-v="delete">Delete event…</button>') + "</div>";
+    }
+    h += "</div><div>" + membersHTML() + "</div></div>";
+    return h;
+  }
+  function membersHTML() {
+    var ps = people();
+    var h = '<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">People · ' + ps.length + "</h2>" +
+      '<button class="sm" data-act="invite">Invite people</button></div><div>';
+    ps.forEach(function (p) {
+      var key = p.email || "";
+      var status = S.ev.event.final_start ? (p.attend === "going" ? "Going" : p.attend === "not_going" || p.rsvp === "no" ? "Not going" : "Waiting to confirm")
+        : (p.rsvp === "yes" ? (p.responded ? "Planning to go · availability shared" : "Planning to go") : p.rsvp === "no" ? "Not going" : p.pending ? "Invited · not signed in yet" : "Hasn't replied");
+      h += '<div class="mrow"><div class="who"><b>' + esc(p.name) + (p.me ? " (you)" : "") + "</b><span>" + esc(p.email && p.email !== p.name ? p.email + " · " : "") + esc(status) + "</span></div>";
+      if (p.role === "owner") h += '<span class="chip acc">Organizer</span><span></span>';
+      else if (!key) h += '<span class="chip">' + roleLabel(p.role) + "</span><span></span>";
+      else {
+        h += '<select data-field="role" data-email="' + esc(key) + '" aria-label="Role for ' + esc(p.name) + '"><option value="guest"' + (p.role !== "admin" ? " selected" : "") + '>Guest</option><option value="admin"' + (p.role === "admin" ? " selected" : "") + ">Co-organizer</option></select>";
+        h += S.ask === "rm:" + key
+          ? '<span class="row" style="flex-wrap:nowrap"><button class="danger sm" data-act="mem-rm" data-email="' + esc(key) + '">Remove</button><button class="sm" data-act="ask" data-v="">Cancel</button></span>'
+          : '<button class="sm ghost" data-act="ask" data-v="rm:' + esc(key) + '" aria-label="Remove ' + esc(p.name) + '">Remove</button>';
+      }
+      h += "</div>";
+    });
+    return h + '</div><p class="msg">Co-organizers can edit the event, manage people, post updates and set the dates.</p></div>';
+  }
+
+  // ---------- invite picker ----------
+  var PK = {};
+  function pickerHTML(key, ph) {
+    return '<div class="picker" data-picker="' + key + '"><div class="pbox" data-act="pick-focus" data-k="' + key + '"><span class="pchips"></span>' +
+      '<input class="pin" type="text" autocomplete="off" spellcheck="false" data-k="' + key + '" placeholder="' + esc(ph) + '" aria-label="Add people by name or email" role="combobox" aria-expanded="false"></div>' +
+      '<div class="pdd" role="listbox" hidden></div></div>';
+  }
+  function pickerEl(key) { return document.querySelector('[data-picker="' + key + '"]'); }
+  function mountPicker(key, list) { PK[key] = { list: list.slice(), q: "", act: 0, sug: [], focus: false }; drawChips(key); }
+  function contactName(email) { var c = (S.contacts || []).find(function (x) { return x.email === email; }); return c && c.name ? c.name : ""; }
+  function drawChips(key) {
+    var el = pickerEl(key); if (!el || !PK[key]) return;
+    el.querySelector(".pchips").innerHTML = PK[key].list.map(function (em) {
+      var nm = contactName(em);
+      return '<span class="pchip" title="' + esc(em) + '"><span>' + esc(nm || em) + '</span><button type="button" data-act="pick-rm" data-k="' + key + '" data-e="' + esc(em) + '" aria-label="Remove ' + esc(em) + '">×</button></span>';
+    }).join("");
+    if (key === "invite") drawInviteActions();
+  }
+  function suggestions(key) {
+    var st = PK[key], q = st.q.trim().toLowerCase(), have = {};
+    st.list.forEach(function (e) { have[e] = 1; });
+    var exclude = {}; if (key === "invite") people().forEach(function (p) { if (p.email) exclude[p.email.toLowerCase()] = 1; });
+    var out = (S.contacts || []).filter(function (c) {
+      if (have[c.email] || exclude[c.email]) return false;
+      return !q || c.email.indexOf(q) >= 0 || (c.name && c.name.toLowerCase().indexOf(q) >= 0);
+    }).slice(0, 8);
+    if (q && EMAIL_RE.test(q) && !have[q] && !out.some(function (c) { return c.email === q; })) out.unshift({ email: q, add: true });
+    return out;
+  }
+  function drawDD(key) {
+    var el = pickerEl(key); if (!el || !PK[key]) return;
+    var st = PK[key], dd = el.querySelector(".pdd"), inp = el.querySelector(".pin");
+    st.sug = suggestions(key);
+    if (st.act >= st.sug.length) st.act = 0;
+    if (!st.focus || (!st.sug.length && !st.q.trim())) { dd.hidden = true; inp.setAttribute("aria-expanded", "false"); return; }
+    dd.innerHTML = st.sug.length ? st.sug.map(function (s, i) {
+      return '<div class="popt' + (i === st.act ? " on" : "") + '" role="option" data-k="' + key + '" data-e="' + esc(s.email) + '">' +
+        (s.add ? "<b>Add " + esc(s.email) + "</b>" : "<b>" + esc(s.name || s.email) + "</b>" + (s.name ? "<span>" + esc(s.email) + "</span>" : "")) + "</div>";
+    }).join("") : '<div class="pempty">' + (S.contacts === null ? "Loading contacts…" : "Keep typing a full email address to add someone new.") + "</div>";
+    dd.hidden = false; inp.setAttribute("aria-expanded", "true");
+  }
+  function pickAdd(key, raw) {
+    var st = PK[key], bad = [];
+    String(raw).split(/[\s,;]+/).forEach(function (t) {
+      t = t.trim().replace(/^<|>$/g, "").toLowerCase(); if (!t) return;
+      if (!EMAIL_RE.test(t)) { bad.push(t); return; }
+      if (st.list.indexOf(t) < 0) st.list.push(t);
+    });
+    drawChips(key);
+    return bad;
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target; if (!t.classList || !t.classList.contains("pin")) return;
+    var key = t.getAttribute("data-k"), st = PK[key]; if (!st) return;
+    if (/[,;\s]/.test(t.value) && t.value.indexOf("@") >= 0) {
+      var parts = t.value.split(/[,;\s]+/), last = /[,;\s]$/.test(t.value) ? "" : parts.pop();
+      var bad = pickAdd(key, parts.join(","));
+      t.value = (bad.length ? bad.join(", ") + (last ? ", " : "") : "") + last;
+    }
+    st.q = t.value; st.act = 0; drawDD(key);
+  });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target; if (!t.classList || !t.classList.contains("pin")) return;
+    var key = t.getAttribute("data-k"), st = PK[key]; if (!st) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (st.sug.length) { st.act = (st.act + (e.key === "ArrowDown" ? 1 : st.sug.length - 1)) % st.sug.length; drawDD(key); } }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (st.sug[st.act]) pickAdd(key, st.sug[st.act].email);
+      else if (t.value.trim()) { var bad = pickAdd(key, t.value); if (bad.length) { st.q = t.value; drawDD(key); return; } }
+      t.value = ""; st.q = ""; drawDD(key);
+    } else if (e.key === "Backspace" && !t.value && st.list.length) { st.list.pop(); drawChips(key); drawDD(key); }
+    else if (e.key === "Escape") { e.stopPropagation(); st.focus = false; drawDD(key); }
+  });
+  document.addEventListener("focusin", function (e) {
+    var t = e.target; if (!t.classList || !t.classList.contains("pin")) return;
+    var key = t.getAttribute("data-k"); if (!PK[key]) return;
+    PK[key].focus = true; drawDD(key);
+  });
+  document.addEventListener("focusout", function (e) {
+    var t = e.target; if (!t.classList || !t.classList.contains("pin")) return;
+    var key = t.getAttribute("data-k"), st = PK[key]; if (!st) return;
+    setTimeout(function () {
+      if (document.activeElement === t || !PK[key]) return;
+      if (t.value.trim() && EMAIL_RE.test(t.value.trim())) { pickAdd(key, t.value); t.value = ""; st.q = ""; }
+      st.focus = false; drawDD(key);
+    }, 120);
+  });
+  document.addEventListener("mousedown", function (e) {
+    var o = e.target.closest && e.target.closest(".popt");
+    if (!o) return;
+    e.preventDefault();
+    var key = o.getAttribute("data-k"), el = pickerEl(key), inp = el && el.querySelector(".pin");
+    pickAdd(key, o.getAttribute("data-e"));
+    if (inp) { inp.value = ""; PK[key].q = ""; inp.focus(); }
+    drawDD(key);
+  });
+
+  // ---------- invite modal ----------
+  function inviteText() {
+    var e = S.ev.event, msgEl = document.getElementById("imsg"), msg = msgEl ? msgEl.value.trim() : e.invite_message;
+    var lines = [(e.owner_name || S.profile.name) + " invited you to help plan: " + e.title];
+    if (msg) lines.push("", msg);
+    if (e.description) lines.push("", e.description);
+    lines.push("");
+    if (e.location) lines.push("Where: " + e.location);
+    lines.push(e.final_start ? "When: " + fmtSpan(e.final_start, e.final_end) : "We're picking dates between " + fmtSpan(e.start_date, e.end_date) + " (" + fmtBlockAdj(e.block_days) + " event).");
+    lines.push("", "Respond here: " + inviteLink());
+    return lines.join("\n");
+  }
+  function openInviteModal() {
+    var e = S.ev.event, me = S.ev.me;
+    modalRoot.innerHTML = '<div class="modal-back" data-act="modal-close-bg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">' +
+      '<div class="mh"><div><h2 id="mtitle" style="margin:0">Invite people</h2><p class="msg" style="margin:2px 0 0">to ' + esc(e.title) + '</p></div><button class="x" data-act="modal-close" aria-label="Close">×</button></div>' +
+      '<div class="field"><span class="lbl">Add people</span>' + pickerHTML("invite", "Type a name or email, or paste a list") +
+      '<span class="msg">Choose people you\'ve planned with before, or add any email address. They get access when they sign in with that email.</span></div>' +
+      (me.is_admin ? '<div class="field"><label class="lbl" for="imsg">Message from you (optional)</label><textarea id="imsg" maxlength="1000" placeholder="Add a personal note to the invite">' + esc(e.invite_message || "") + "</textarea></div>"
+        : (e.invite_message ? '<div class="field"><span class="lbl">Message from the organizer</span><p style="margin:0;white-space:pre-line">' + esc(e.invite_message) + "</p></div>" : "")) +
+      '<div class="field"><span class="lbl">Invite preview</span><div class="preview" id="ipreview"></div></div>' +
+      '<div class="row" id="iactions"></div><p class="msg" id="imsgline" role="status"></p></div></div>';
+    mountPicker("invite", []);
+    loadContacts().then(function () { drawChips("invite"); drawDD("invite"); });
+    var inp = modalRoot.querySelector(".pin"); if (inp) inp.focus();
+  }
+  function closeModal() { modalRoot.innerHTML = ""; delete PK.invite; }
+  function drawInviteActions(sentTo) {
+    var box = document.getElementById("iactions"); if (!box) return;
+    var list = PK.invite ? PK.invite.list : [], txt = inviteText(), to = (sentTo || list);
+    document.getElementById("ipreview").textContent = txt;
+    var mail = "mailto:?" + (to.length ? "bcc=" + encodeURIComponent(to.join(",")) + "&" : "") +
+      "subject=" + encodeURIComponent("You're invited: " + S.ev.event.title) + "&body=" + encodeURIComponent(txt);
+    box.innerHTML = '<button class="primary" data-act="inv-add"' + (list.length ? "" : " disabled") + ">" + (list.length ? "Add " + list.length + (list.length === 1 ? " person" : " people") + " to the invite list" : "Add people above") + "</button>" +
+      '<a class="btn" href="' + esc(mail) + '">Email invite</a><button data-act="inv-copy">Copy invite</button><button class="ghost" data-act="modal-close">Done</button>';
+  }
+  modalRoot.addEventListener("input", function (e) { if (e.target.id === "imsg") drawInviteActions(); });
+
   // ---------- render ----------
   function render() {
     top.innerHTML = topHTML();
@@ -661,21 +1166,21 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     else if (!S.profile) h = onboardingHTML();
     else {
       var r = S.route.name;
-      h = r === "new" ? formHTML(null) : r === "account" ? accountHTML() : r === "event" ? eventHTML() : homeHTML();
+      if (r === "new") {
+        if (app.querySelector("form[data-form=create]")) return; // keep the form and picker mounted
+        h = newEventHTML();
+      } else h = r === "account" ? accountHTML() : r === "event" ? eventHTML() : homeHTML();
     }
     app.innerHTML = h;
   }
+  function setFormMsg(text, isErr) {
+    var f = app.querySelector("form[data-form=create]"); if (!f) return;
+    var old = f.querySelector("p.msg[role=status]"); if (old) old.remove();
+    if (text) { var p = document.createElement("p"); p.className = "msg " + (isErr ? "err" : "ok"); p.setAttribute("role", "status"); p.textContent = text; f.appendChild(p); }
+    var b = f.querySelector("[type=submit]"); if (b) b.disabled = !!S.saving;
+  }
 
   // ---------- actions ----------
-  function readEventForm(f) {
-    var amt = Math.max(1, Math.round(+f.block_amt.value || 1));
-    return {
-      title: f.title.value, description: f.description.value,
-      start_date: f.start_date.value, end_date: f.end_date.value,
-      block_days: f.block_unit.value === "weeks" ? amt * 7 : amt,
-      invitees: f.invitees.value, open_join: f.open_join.checked
-    };
-  }
   function saveResponse() {
     var errs = [], months = {}, weeks = {};
     S.cal.forEach(function (m) {
@@ -705,63 +1210,90 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     var id = S.ev.event.id;
     api("/api/response?id=" + encodeURIComponent(id), "PUT", { weeks: weeks, months: months })
       .then(function () { return loadEvent(id); })
-      .then(function () { S.saving = false; S.msg = "Saved."; S.msgErr = false; render(); },
+      .then(function () { S.saving = false; S.msg = "Saved. Thanks for sharing your availability."; S.msgErr = false; render(); },
             function (e) { S.saving = false; showErr(e); });
   }
   function toggleDay(b) {
-    var w = b.getAttribute("data-w"), i = +b.getAttribute("data-i"), mk = b.getAttribute("data-m"), cur;
+    var w = b.getAttribute("data-w"), i = +b.getAttribute("data-i"), mk = b.getAttribute("data-m"), cur, at;
     if (mk) {
       var M = S.draft.months[mk]; if (!M) return; M.days = M.days || {};
-      cur = (M.days[w] || []).slice(); var at = cur.indexOf(i); if (at >= 0) cur.splice(at, 1); else cur.push(i); M.days[w] = cleanDays(cur);
+      cur = (M.days[w] || []).slice(); at = cur.indexOf(i); if (at >= 0) cur.splice(at, 1); else cur.push(i); M.days[w] = cleanDays(cur);
     } else {
       var W = S.draft.weeks[w]; if (!W) return;
-      cur = (W.days || []).slice(); var at2 = cur.indexOf(i); if (at2 >= 0) cur.splice(at2, 1); else cur.push(i); W.days = cleanDays(cur);
+      cur = (W.days || []).slice(); at = cur.indexOf(i); if (at >= 0) cur.splice(at, 1); else cur.push(i); W.days = cleanDays(cur);
     }
     S.dirty = true; S.msg = ""; render();
-    var again = app.querySelector('button[data-act="day"][data-w="' + w + '"][data-i="' + i + '"]');
-    if (again) again.focus();
+    var again = app.querySelector('button[data-act="day"][data-w="' + w + '"][data-i="' + i + '"]'); if (again) again.focus();
   }
-  function openSignIn() {
-    C.openSignIn({ forceRedirectUrl: location.href, signUpForceRedirectUrl: location.href });
+  function refreshEvent(msg) {
+    return loadEvent(S.ev.event.id, true).then(function () { if (msg) { S.msg = msg; S.msgErr = false; render(); } });
+  }
+  function copy(text, btn, label) {
+    var done = function () { if (btn) { var t = btn.textContent; btn.textContent = label || "Copied"; setTimeout(function () { btn.textContent = t; }, 1600); } };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { window.prompt("Copy this:", text); });
+    else window.prompt("Copy this:", text);
   }
 
   document.addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest("[data-act]") : null;
     if (S.menu && !(e.target.closest && e.target.closest(".menu, [data-act=menu]"))) { S.menu = false; render(); }
     if (!b || b.disabled) {
-      if (!(e.target.closest && e.target.closest(".sd"))) { if (S.sel) { S.sel = null; hideTip(); render(); } }
+      if (S.sel && !(e.target.closest && e.target.closest(".sd"))) { S.sel = null; hideTip(); render(); }
       return;
     }
-    var act = b.getAttribute("data-act");
-    if (act === "signin") openSignIn();
-    else if (act === "signout") C.signOut().then(function () { location.hash = "#/"; location.reload(); });
-    else if (act === "menu") { S.menu = !S.menu; render(); }
-    else if (act === "clerkprofile") { S.menu = false; render(); C.openUserProfile(); }
-    else if (act === "go") nav(b.getAttribute("data-h"));
-    else if (act === "save") saveResponse();
-    else if (act === "day") toggleDay(b);
-    else if (act === "copy") {
-      var inp = document.getElementById("sharelink"), done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy invite link"; }, 1500); };
-      if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, function () { inp.select(); });
-      else inp.select();
-    } else if (act === "hl") {
-      var s = b.getAttribute("data-s");
-      S.hl = S.hl && S.hl.start === s ? null : { start: s, end: b.getAttribute("data-e") }; render();
-    } else if (act === "dayinfo") {
+    var a = b.getAttribute("data-act");
+    if (a === "signin") C.openSignIn({ forceRedirectUrl: location.href, signUpForceRedirectUrl: location.href });
+    else if (a === "signout") C.signOut().then(function () { location.hash = "#/"; location.reload(); });
+    else if (a === "menu") { S.menu = !S.menu; render(); }
+    else if (a === "clerkprofile") { S.menu = false; render(); C.openUserProfile(); }
+    else if (a === "go") nav(b.getAttribute("data-h"));
+    else if (a === "save") saveResponse();
+    else if (a === "day") toggleDay(b);
+    else if (a === "ask") { S.ask = b.getAttribute("data-v") || null; render(); }
+    else if (a === "copy-link") copy(inviteLink(), b, "Link copied");
+    else if (a === "invite") openInviteModal();
+    else if (a === "modal-close" || (a === "modal-close-bg" && e.target === b)) closeModal();
+    else if (a === "pick-rm") { var k = b.getAttribute("data-k"); PK[k].list = PK[k].list.filter(function (x) { return x !== b.getAttribute("data-e"); }); drawChips(k); }
+    else if (a === "pick-focus") { var pin = b.querySelector(".pin"); if (pin && e.target === b) pin.focus(); }
+    else if (a === "inv-copy") copy(inviteText(), b, "Invite copied");
+    else if (a === "inv-add") {
+      var list = PK.invite.list.slice(), m = document.getElementById("imsg"), line = document.getElementById("imsgline");
+      b.disabled = true;
+      act("invite", { emails: list, message: m ? m.value : undefined }).then(function () {
+        PK.invite.list = []; drawChips("invite"); drawInviteActions(list);
+        line.className = "msg ok"; line.textContent = "Added " + list.length + (list.length === 1 ? " person" : " people") + ". Now send the invite: Email invite opens your mail app with them in BCC, or Copy invite for a chat.";
+        if (m) S.ev.event.invite_message = m.value;
+        api("/api/event?id=" + encodeURIComponent(S.ev.event.id)).then(function (d) { S.ev.people = d.people; S.ev.event = d.event; if (!modalRoot.innerHTML) render(); else app.innerHTML = eventHTML(); });
+      }, function (err) { b.disabled = false; line.className = "msg err"; line.textContent = err.message; });
+    }
+    else if (a === "rsvp") {
+      var v = b.getAttribute("data-v");
+      act("rsvp", { rsvp: v }).then(function () {
+        return refreshEvent(v === "no" ? "Got it. The organizer will see that you can't make it." : "");
+      }).then(function () { if (v === "yes" && !S.ev.me.responded) nav("#/e/" + S.ev.event.id + "/availability"); }, showErr);
+    }
+    else if (a === "attend") {
+      var av = b.getAttribute("data-v");
+      act("attend", { attend: av }).then(function () { return refreshEvent(av === "going" ? "See you there!" : "Thanks for letting everyone know."); }, showErr);
+    }
+    else if (a === "ex") { S.ex = { mode: b.getAttribute("data-mode"), month: b.getAttribute("data-m"), from: S.ex.from, to: S.ex.to }; S.hl = null; render(); }
+    else if (a === "hl") { var s = b.getAttribute("data-s"); S.hl = S.hl && S.hl.start === s ? null : { start: s, end: b.getAttribute("data-e") }; render(); }
+    else if (a === "sched-set") {
+      var ss = b.getAttribute("data-s"), se = b.getAttribute("data-e");
+      act("schedule", { final_start: ss, final_end: se }).then(function () { return refreshEvent("Event dates set to " + fmtSpan(ss, se) + ". Everyone will be asked to confirm."); }, showErr);
+    }
+    else if (a === "sched-clear") act("schedule", { clear: true }).then(function () { return refreshEvent("Back to planning. The dates were cleared."); }, showErr);
+    else if (a === "upd-del") act("delete_update", { update_id: b.getAttribute("data-id") }).then(function () { return refreshEvent(); }, showErr);
+    else if (a === "mem-rm") { var em = b.getAttribute("data-email"); S.ask = null; act("member_remove", { email: em }).then(function () { return refreshEvent("Removed " + em + "."); }, showErr); }
+    else if (a === "dayinfo") {
       S.sel = S.sel === b.getAttribute("data-iso") ? null : b.getAttribute("data-iso");
       render();
       if (S.sel) { var el = app.querySelector('.sd[data-iso="' + S.sel + '"]'); if (el) showTip(el); } else hideTip();
-    } else if (act === "delask") { S.delConfirm = true; render(); }
-    else if (act === "delcancel") { S.delConfirm = false; render(); }
-    else if (act === "delete") {
-      api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "DELETE").then(function () { S.ev = null; nav("#/"); }, showErr);
     }
+    else if (a === "delete") api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "DELETE").then(function () { S.ev = null; nav("#/"); }, showErr);
   });
 
-  app.addEventListener("mouseover", function (e) {
-    var el = e.target.closest && e.target.closest(".sd[data-act=dayinfo]");
-    if (el && !S.sel) showTip(el);
-  });
+  app.addEventListener("mouseover", function (e) { var el = e.target.closest && e.target.closest(".sd[data-act=dayinfo]"); if (el && !S.sel) showTip(el); });
   app.addEventListener("mouseout", function (e) {
     var el = e.target.closest && e.target.closest(".sd[data-act=dayinfo]");
     if (el && !S.sel && !(e.relatedTarget && el.contains(e.relatedTarget))) hideTip();
@@ -769,7 +1301,12 @@ a.ev .meta{font-size:13px;color:var(--muted)}
   app.addEventListener("focusin", function (e) { if (e.target.matches && e.target.matches(".sd[data-act=dayinfo]")) showTip(e.target); });
   app.addEventListener("focusout", function (e) { if (e.target.matches && e.target.matches(".sd[data-act=dayinfo]") && !S.sel) hideTip(); });
   window.addEventListener("scroll", function () { if (!tip.hidden) hideTip(); S.sel = null; }, { passive: true });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hideTip(); S.sel = null; if (S.menu) { S.menu = false; render(); } } });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    hideTip(); S.sel = null;
+    if (modalRoot.innerHTML) closeModal();
+    if (S.menu) { S.menu = false; render(); }
+  });
 
   app.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -780,20 +1317,27 @@ a.ev .meta{font-size:13px;color:var(--muted)}
         S.profile = d.profile; S.msg = wasNew ? "" : "Saved."; S.msgErr = false;
         if (wasNew) go(); else render();
       }, showErr);
-    } else if (kind === "event") {
-      var body = readEventForm(f), editing = S.route.name === "event";
-      S.saving = true; S.msg = ""; render();
-      var req = editing ? api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "PUT", body) : api("/api/events", "POST", body);
-      req.then(function (d) {
+    } else if (kind === "create") {
+      var body = readEventForm(f), pin = f.querySelector(".pin");
+      if (pin && pin.value.trim()) { var bad = pickAdd("new", pin.value); if (bad.length) { setFormMsg("These don't look like email addresses: " + bad.join(", "), true); return; } pin.value = ""; }
+      body.invitees = PK.new ? PK.new.list : [];
+      S.saving = true; setFormMsg("");
+      api("/api/events", "POST", body).then(function (d) {
+        S.saving = false; S.openInvite = true; S.ev = null; app.innerHTML = ""; nav("#/e/" + d.id);
+      }, function (err) { S.saving = false; setFormMsg(err.message, true); });
+    } else if (kind === "settings") {
+      var sb = readEventForm(f);
+      S.saving = true;
+      api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "PUT", sb).then(function () {
         S.saving = false;
-        var id = editing ? S.ev.event.id : d.id;
-        S.ev = null; nav("#/e/" + id);
-      }, function (err) {
-        S.saving = false; showErr(err);
-        // keep what they typed
-        var f2 = app.querySelector("form[data-form=event]");
-        if (f2) { f2.title.value = body.title; f2.description.value = body.description; f2.start_date.value = body.start_date; f2.end_date.value = body.end_date; f2.invitees.value = body.invitees; f2.open_join.checked = body.open_join; }
-      });
+        return loadEvent(S.ev.event.id, true).then(function () { S.msg = "Settings saved."; S.msgErr = false; render(); });
+      }, function (err) { S.saving = false; showErr(err); });
+    } else if (kind === "schedule") {
+      act("schedule", { final_start: f.final_start.value, final_end: f.final_end.value })
+        .then(function () { return refreshEvent("Event dates saved. Everyone will be asked to confirm."); }, showErr);
+    } else if (kind === "update") {
+      var text = f.body.value.trim(); if (!text) return;
+      act("post_update", { body: text }).then(function () { return refreshEvent(); }, showErr);
     }
   });
 
@@ -818,8 +1362,7 @@ a.ev .meta{font-size:13px;color:var(--muted)}
         delete S.draft.months[m.key];
       });
       var prev = S.draft.weeks[w] || {};
-      if (!v) delete S.draft.weeks[w];
-      else S.draft.weeks[w] = { s: v, date: prev.date || "", days: prev.days || [] };
+      if (!v) delete S.draft.weeks[w]; else S.draft.weeks[w] = { s: v, date: prev.date || "", days: prev.days || [] };
       S.dirty = true; S.msg = ""; render();
     } else if (f === "month") {
       var mk = el.getAttribute("data-m"), mv = el.value, pm = S.draft.months[mk] || {};
@@ -829,12 +1372,14 @@ a.ev .meta{font-size:13px;color:var(--muted)}
         S.cal.forEach(function (m) { if (m.key === mk) m.weeks.forEach(function (x) { delete S.draft.weeks[x.key]; }); });
       }
       S.dirty = true; S.msg = ""; render();
+    } else if (f === "exfrom" || f === "exto") {
+      S.ex[f === "exfrom" ? "from" : "to"] = el.value; S.hl = null; render();
+    } else if (f === "role") {
+      var email = el.getAttribute("data-email");
+      act("member_role", { email: email, role: el.value }).then(function () { return refreshEvent(el.value === "admin" ? "Made " + email + " a co-organizer." : "Changed " + email + " to guest."); }, showErr);
     }
   });
-  window.addEventListener("hashchange", function () {
-    if (S.dirty && S.route.name === "event" && S.route.tab === "respond") S.dirty = false;
-    go();
-  });
+  window.addEventListener("hashchange", function () { if (S.dirty && S.route.tab === "availability") S.dirty = false; closeModal(); go(); });
   window.addEventListener("beforeunload", function (e) { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
 
   // ---------- boot ----------
@@ -856,7 +1401,6 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     return addScript("https://" + host + "/npm/@clerk/ui@1/dist/ui.browser.js")
       .then(function () { return addScript("https://" + host + "/npm/@clerk/clerk-js@6/dist/clerk.browser.js", pk); });
   }
-
   function boot() {
     S.route = parseRoute(); render();
     fetch("/api/config").then(function (r) { return r.json(); }).then(function (cfg) {
@@ -868,7 +1412,7 @@ a.ev .meta{font-size:13px;color:var(--muted)}
     }).then(function () {
       var was = !!C.user;
       C.addListener(function (ev) { if (!!(ev && ev.user) !== was) location.reload(); });
-      if (!C.user) { S.phase = "ready"; render(); return; }
+      if (!C.user) { S.phase = "ready"; go(); return; }
       S.email = (C.user.primaryEmailAddress && C.user.primaryEmailAddress.emailAddress) || "";
       return api("/api/me").then(function (d) {
         S.profile = d.profile; S.suggestedName = d.suggestedName || C.user.fullName || "";
