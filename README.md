@@ -1,18 +1,21 @@
-# Availability Poll
+# Group Availability
 
-A one-page group availability poll. People sign in with Google (via Clerk), mark each week (or a whole month) as **Free**, **Set days** (tap the days they're free), **Not Sure Yet** (with the date they expect to know), or **Busy**. The **Overview** tab totals everyone's answers by week and by day.
+Plan events around everyone's schedule. Sign in with Google (via Clerk), create an event with a polling period, an event length and invitees, and share the link. Each person marks weeks (or whole months) as **Free**, **Set days** (tap the days they're free), **Not Sure Yet** (with the date they expect to know), or **Busy**. The **Group summary** shows a calendar with open days and conflict counts, hover details, and the best windows for the event length.
 
 ## How it's built
 
 | Piece | What it does |
 |---|---|
-| `index.html` | The whole front end: calendar UI, Clerk sign-in, Overview. No build step. |
-| `api/config.js` | `GET /api/config` returns the Clerk publishable key to the page. |
-| `api/responses.js` | `GET /api/responses` returns all answers plus yours; `PUT` saves yours. Requires a Clerk session token. |
-| `api/_lib.js` | Shared helpers: Neon client, Clerk token check, input cleanup, table creation. |
-| `schema.sql` | The single `responses` table (also created automatically on first request). |
+| `index.html` | The whole front end: landing page, top bar and user menu, name prompt, My events, event form, availability and summary calendars. Hash routes: `#/`, `#/new`, `#/account`, `#/e/<id>`, `#/e/<id>/summary`, `#/e/<id>/edit`. |
+| `api/config.js` | `GET` returns the Clerk publishable key. |
+| `api/me.js` | `GET`/`PUT` your display name (asked on first sign-in, defaulting to your Google name). |
+| `api/events.js` | `GET` events you organize or are invited to; `POST` creates one. |
+| `api/event.js` | `GET ?id=` event + everyone's answers; `PUT`/`DELETE` for the organizer. |
+| `api/response.js` | `PUT ?id=` saves your answers for an event. |
+| `api/_lib.js` | Neon client, Clerk session check, validation, access rules, table creation. |
+| `schema.sql` | Tables (also created automatically on first request). |
 
-Each signed-in person has one row, keyed by their Clerk user id, so people can only change their own answers. Other people's email addresses are never sent to the browser.
+Access: the organizer, anyone whose verified email is on the invite list, and (when "Anyone with the link can join" is on) anyone who opens the link while signed in. Other people's email addresses are only shown to the organizer.
 
 ## Environment variables (Vercel → Project → Settings → Environment Variables)
 

@@ -4,50 +4,112 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Group Availability</title>
+<meta name="description" content="Find the weeks that work for everyone. Invite people, collect availability week by week, and see open days at a glance.">
 <style>
-:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+/* Layout: sticky top bar, centered content column (wide grid for calendars), cards for grouped content. */
+:root{
+  --bg:#f5f4ef;--fg:#1c1f23;--muted:#666b73;--line:#d9d6cc;--card:#ffffff;--soft:#ecebe4;
+  --accent:#1f4d3a;--accent-fg:#ffffff;
+  --open:#2e7d4f;--tent:#2d6aa8;--na:#c2413b;--none:#cfccc3;--focus:#1f4d3a;
+  --shadow:0 8px 24px rgba(20,24,28,.14);
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--soft:#24282d;--accent:#86c9a6;--accent-fg:#10231a;--open:#5cb882;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;--shadow:0 8px 24px rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--soft:#24282d;--accent:#86c9a6;--accent-fg:#10231a;--open:#5cb882;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;--shadow:0 8px 24px rgba(0,0,0,.5);color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 [hidden]{display:none!important}
-:root{--bg:#f5f4ef;--fg:#1c1f23;--muted:#666b73;--line:#d9d6cc;--card:#ffffff;--accent:#1f4d3a;--open:#2e7d4f;--partial:#b7791f;--tent:#2d6aa8;--na:#c2413b;--none:#cfccc3;--focus:#1f4d3a;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--accent:#86c9a6;--open:#5cb882;--partial:#e3ac4f;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#15171a;--fg:#ecebe6;--muted:#9ca1a9;--line:#2c3035;--card:#1d2024;--accent:#86c9a6;--open:#5cb882;--partial:#e3ac4f;--tent:#6aa8e6;--na:#e0645c;--none:#3b3f45;--focus:#86c9a6;color-scheme:dark}
-body{background:var(--bg);color:var(--fg);padding-block:18px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font-size:15px;line-height:1.45}
-#app{max-width:1480px;margin:0 auto;min-width:0}
-#app>h1,#app>.sub,#app>.tabs,#app>.legend,#app>.card{max-width:720px}
-.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;align-items:stretch}
-.months>.card{margin-bottom:0}
-h1{font-size:22px;margin:0 0 4px;text-wrap:balance;font-weight:650}
-h2{font-size:16px;margin:0 0 10px;font-weight:600}
-.sub{color:var(--muted);margin:0 0 14px}
-.tabs{display:flex;gap:8px;margin-bottom:14px}
-button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:38px;cursor:pointer}
-button[disabled]{opacity:.5;cursor:default}
-button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
-.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
-input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:38px;width:100%;box-sizing:border-box;min-width:0}
+a{color:var(--accent)}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;min-width:0}
-.field{display:grid;gap:4px;margin:8px 0 0}
+h1{font-size:24px;margin:0 0 4px;text-wrap:balance;font-weight:650}
+h2{font-size:16px;margin:0 0 10px;font-weight:600}
+.wrap{max-width:1480px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main.wrap{padding-block:20px 40px;min-width:0}
+.narrow{max-width:720px}
+.sub{color:var(--muted);margin:0 0 14px}
 .lbl{font-size:12px;color:var(--muted)}
 .msg{color:var(--muted);font-size:13px;margin:6px 0 0}
-.err{color:#c0392b}
-.wl{font-weight:600}
-.save{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
-.people span{display:inline-block;margin:0 6px 6px 0;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px}
-.ovw{border-top:1px solid var(--line);padding:10px 0;display:grid;gap:6px;min-width:0}
-.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--none)}
-.bar i{display:block;height:100%}
-.s-open{background:var(--open)}
-.s-partial{background:repeating-linear-gradient(90deg,var(--open) 0 5px,var(--na) 5px 10px)}
-.s-tentative{background:repeating-linear-gradient(45deg,var(--tent) 0 3px,color-mix(in srgb,var(--tent) 30%,var(--card)) 3px 6px)}
-.s-na{background:var(--na)}
-.s-none{background:var(--none)}
-.counts{font-size:12px;color:var(--muted)}
-.notes{margin:0;padding-left:18px;font-size:13px}
-.free{font-size:12px;color:var(--fg)}
-.free b{font-weight:600}
-.tag{font-size:12px;color:var(--open);font-weight:600;margin-left:6px}
+.err{color:var(--na)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;min-width:0}
 
+/* controls */
+button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:38px;cursor:pointer}
+button[disabled]{opacity:.5;cursor:default}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.ghost{background:transparent}
+.danger{color:var(--na);border-color:color-mix(in srgb,var(--na) 50%,var(--line))}
+button.link{background:none;border:none;padding:0;min-height:0;color:var(--accent);text-decoration:underline;font-size:13px}
+input,textarea,select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:38px;width:100%;min-width:0}
+textarea{min-height:90px;resize:vertical}
+select{padding:4px 8px;min-height:32px}
+select:disabled{opacity:.45;cursor:not-allowed}
+.field{display:grid;gap:4px;margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.check input{width:auto;min-height:0;margin-top:3px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--card)}
+.top .wrap{display:flex;align-items:center;gap:16px;min-height:56px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--fg);text-decoration:none;font-size:16px;white-space:nowrap}
+.brand i{display:grid;grid-template-columns:repeat(3,7px);gap:2px}
+.brand i b{width:7px;height:7px;border-radius:2px;background:var(--open)}
+.brand i b:nth-child(2),.brand i b:nth-child(6){background:var(--na)}
+.brand i b:nth-child(4){background:var(--tent)}
+.navlinks{display:flex;gap:4px;flex:1;min-width:0}
+.navlinks a{padding:8px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;white-space:nowrap}
+.navlinks a.on{color:var(--fg);background:var(--soft);font-weight:600}
+.navright{display:flex;align-items:center;gap:10px;margin-left:auto}
+.avatar{width:36px;height:36px;border-radius:50%;padding:0;min-height:0;overflow:hidden;display:grid;place-items:center;background:var(--soft);font-weight:600;font-size:14px}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.menu{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:60px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:240px;padding:6px;z-index:30}
+.menu .who{padding:10px 10px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.menu .who b{display:block}
+.menu .who span{font-size:12px;color:var(--muted);word-break:break-all}
+.menu button{display:block;width:100%;text-align:left;border:none;background:none;border-radius:8px}
+.menu button:hover{background:var(--soft)}
+@media (max-width:560px){.navlinks a.hide-sm,.hide-sm{display:none}}
+
+/* landing */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:40px;align-items:center;padding-block:40px 24px}
+.hero h1{font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.02em;margin-bottom:14px}
+.hero p{font-size:17px;color:var(--muted);max-width:52ch;margin:0 0 22px}
+.hero .primary{font-size:16px;padding:12px 20px}
+.demo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.demo .t{font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between}
+.demo .g{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.demo .g .sd{aspect-ratio:1;min-height:0}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;padding-block:8px 24px}
+.features .card h3{margin:0 0 4px;font-size:15px}
+.features .card p{margin:0;color:var(--muted);font-size:14px}
+@media (max-width:820px){.hero{grid-template-columns:1fr;gap:24px;padding-top:24px}}
+
+/* home list */
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.events{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+a.ev{display:grid;gap:8px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+a.ev:hover{border-color:var(--accent)}
+a.ev h3{margin:0;font-size:16px}
+a.ev .meta{font-size:13px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.chip.go{background:color-mix(in srgb,var(--open) 18%,var(--card));color:var(--fg)}
+.chip.todo{background:color-mix(in srgb,var(--na) 16%,var(--card));color:var(--fg)}
+.empty{text-align:center;padding:40px 16px}
+
+/* event page */
+.crumb{font-size:13px;margin-bottom:8px;display:inline-block}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:16px 0}
+.tabs a{padding:10px 12px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-size:14px;white-space:nowrap}
+.tabs a.on{color:var(--fg);border-color:var(--accent);font-weight:600}
+.share{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.share input{flex:1;min-width:0;font-size:13px}
+
+/* status colors */
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin:0 0 12px}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
 .legend i.st-open{background:var(--open)}
@@ -55,21 +117,26 @@ input{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(-
 .legend i.st-tentative{background:repeating-linear-gradient(45deg,var(--tent) 0 3px,color-mix(in srgb,var(--tent) 25%,var(--card)) 3px 6px)}
 .legend i.st-na{background:var(--na)}
 .legend i.st-none{background:var(--none)}
+
+/* month cards (respond + summary) */
+.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;align-items:stretch}
+.months>.card{margin-bottom:0}
 .mhead{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:12px}
 .mhead h2{margin:0;line-height:32px}
 .mset{display:flex;align-items:center;gap:8px;margin:0}
 .mset .lbl{white-space:nowrap}
 .mset select{width:auto;min-width:140px}
 .mdetail{display:grid;gap:4px;margin:0 0 12px}
-select{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 8px;min-height:32px;width:100%;box-sizing:border-box;min-width:0}
-select:disabled{opacity:.45;cursor:not-allowed}
 .cal{display:grid;grid-template-columns:52px minmax(96px,128px) repeat(7,minmax(0,1fr));gap:6px 4px;align-items:start}
-.cal .hd{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:center;line-height:16px}
-.cal .hd.l{text-align:left}
+.hd{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;text-align:center;line-height:16px}
+.hd.l{text-align:left}
+.hd .sm{display:none}
+@media (max-width:520px){.hd .lg{display:none}.hd .sm{display:inline}}
 .wk{font-size:13px;font-weight:600;line-height:32px;white-space:nowrap}
 .ws select{font-size:13px}
-.d{height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;border:1px solid var(--line);background:var(--card);font-variant-numeric:tabular-nums;box-sizing:border-box}
-.d.out{opacity:.35}
+.d{height:32px;display:flex;align-items:center;justify-content:center;font-size:11px;border-radius:5px;border:1px solid var(--line);background:var(--card);font-variant-numeric:tabular-nums}
+.d.out{opacity:.4}
+.d.off{opacity:.18;background:transparent!important;border-style:dotted!important}
 .d.st-none{background:color-mix(in srgb,var(--none) 60%,var(--card));border-color:var(--none)}
 .d.st-open{background:color-mix(in srgb,var(--open) 35%,var(--card));border-color:color-mix(in srgb,var(--open) 60%,var(--card))}
 .d.st-tentative{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tent) 45%,var(--card)) 0 4px,color-mix(in srgb,var(--tent) 12%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--tent) 60%,var(--card))}
@@ -78,28 +145,51 @@ select:disabled{opacity:.45;cursor:not-allowed}
 .d.st-partial.pk{background:color-mix(in srgb,var(--open) 38%,var(--card));border:1.5px dashed var(--open);font-weight:600}
 .cal button.d{min-height:0;padding:0;font-size:11px;cursor:pointer;color:var(--fg)}
 .cal button.d.tap{height:36px}
-.cal button.d:hover{border-style:solid}
 .hint{grid-column:3 / -1;font-size:11px;color:var(--muted);margin-top:-4px}
+.wdetail{grid-column:2 / -1;display:grid;gap:4px}
 .tdate{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.tdate input{width:auto;min-width:0;max-width:170px;min-height:32px;padding:4px 8px;font-size:13px}
-.tdate .lbl{font-size:12px}
-.hd .sm{display:none}
-@media (max-width:520px){.hd .lg{display:none}.hd .sm{display:inline}}
-.wdetail{grid-column:2 / -1;display:grid;gap:4px;margin-top:-2px}
-.wdetail input{min-height:32px;padding:4px 8px;font-size:13px}
-.who{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
-button.link{background:none;border:none;padding:0;min-height:0;color:var(--accent);text-decoration:underline;font-size:13px}
+.tdate input{width:auto;max-width:170px;min-height:32px;padding:4px 8px;font-size:13px}
+.save{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:12px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;z-index:5}
+
+/* summary calendar */
+.sumcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.sd{position:relative;min-height:46px;border-radius:7px;border:1px solid var(--line);background:var(--card);padding:4px 6px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;font-variant-numeric:tabular-nums;cursor:pointer;color:var(--fg);font-size:12px;min-width:0}
+.sd .n{font-weight:600}
+.sd .b{align-self:flex-end;font-size:12px;font-weight:700;line-height:1}
+.sd.blank{visibility:hidden}
+.sd.out{opacity:.55}
+.sd.c-none{background:color-mix(in srgb,var(--none) 50%,var(--card))}
+.sd.c-open{background:color-mix(in srgb,var(--open) 30%,var(--card));border-color:color-mix(in srgb,var(--open) 55%,var(--card))}
+.sd.c-all{background:color-mix(in srgb,var(--open) 55%,var(--card));border-color:var(--open)}
+.sd.c-tent{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tent) 40%,var(--card)) 0 4px,color-mix(in srgb,var(--tent) 10%,var(--card)) 4px 8px);border-color:color-mix(in srgb,var(--tent) 55%,var(--card))}
+.sd.c-busy{background:color-mix(in srgb,var(--na) var(--lv,35%),var(--card));border-color:color-mix(in srgb,var(--na) 60%,var(--card))}
+.sd.hl{outline:3px solid var(--fg);outline-offset:1px;z-index:1}
+.sd.sel{outline:2px solid var(--accent);outline-offset:1px}
+.tip{position:fixed;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;max-width:280px;font-size:13px;pointer-events:none}
+.tip h4{margin:0 0 6px;font-size:13px}
+.tip .grp{margin-top:6px}
+.tip .grp b{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tip .grp div{margin-top:2px}
+.windows{display:grid;gap:8px}
+.win{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:space-between;text-align:left;width:100%}
+.win[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
+.win .r{font-weight:600}
+.win .s{font-size:13px;color:var(--muted)}
+.people{display:flex;flex-wrap:wrap;gap:6px}
+.people span{font-size:13px;padding:3px 10px;border:1px solid var(--line);border-radius:999px}
 .people span.me{border-color:var(--accent);font-weight:600}
-#auth{display:flex;justify-content:center;padding-block:8px 24px}
+.people span.pend{border-style:dashed;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){a.ev,.sd{transition:border-color .15s}}
 </style>
 </head>
 <body>
-<div id="app"></div>
-<div id="auth" hidden></div>
+<header class="top" id="top"></header>
+<main class="wrap" id="app"></main>
+<div class="tip" id="tip" hidden></div>
 <script>
 (function () {
   "use strict";
-  var CFG = { start: [2026, 10, 1], months: 5, title: "Group availability" };
+  // ---------- constants & date helpers ----------
   var STATUS = [["open", "Free"], ["partial", "Set days"], ["tentative", "Not Sure Yet"], ["na", "Busy"]];
   var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -113,17 +203,20 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
     var a = new Date(t), b = new Date(t + 6 * DAY);
     return MON[a.getUTCMonth()] + " " + a.getUTCDate() + " – " + (a.getUTCMonth() === b.getUTCMonth() ? "" : MON[b.getUTCMonth()] + " ") + b.getUTCDate();
   }
-  function fmtDate(iso) {
+  function fmtDate(iso, withDow) {
     if (!iso) return "";
-    var p = iso.split("-");
-    return MON[+p[1] - 1] + " " + (+p[2]) + ", " + p[0];
+    var d = new Date(ts(iso));
+    return (withDow ? DOW[(d.getUTCDay() + 6) % 7] + ", " : "") + MON[d.getUTCMonth()] + " " + d.getUTCDate() + ", " + d.getUTCFullYear();
   }
+  function fmtShort(iso) { var d = new Date(ts(iso)); return DOW[(d.getUTCDay() + 6) % 7] + " " + MON[d.getUTCMonth()] + " " + d.getUTCDate(); }
+  function fmtSpan(a, b) { return fmtDate(a) + " – " + fmtDate(b); }
+  function fmtBlockAdj(n) { n = +n || 1; return n % 7 === 0 ? (n / 7) + "-week" : n + "-day"; }
+  function fmtBlock(n) { n = +n || 1; return n % 7 === 0 ? (n / 7) + (n === 7 ? " week" : " weeks") : n + (n === 1 ? " day" : " days"); }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  function nk(n) { return String(n || "").trim().toLowerCase(); }
   function clone(o) { return JSON.parse(JSON.stringify(o || {})); }
   function cleanDays(a) {
     var out = [];
@@ -131,102 +224,268 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
     return out.sort();
   }
 
-  // Weeks (Mon-Sun) grouped by the month their Thursday falls in
-  var CAL = (function () {
-    var s = Date.UTC(CFG.start[0], CFG.start[1], CFG.start[2]);
-    var e = Date.UTC(CFG.start[0], CFG.start[1] + CFG.months, 1);
-    var dow = (new Date(s).getUTCDay() + 6) % 7;
-    var months = [], byKey = {};
-    for (var t = s - dow * DAY; t < e; t += 7 * DAY) {
-      var thu = t + 3 * DAY;
-      if (thu < s || thu >= e) continue;
-      var td = new Date(thu);
-      var mk = td.getUTCFullYear() + "-" + p2(td.getUTCMonth() + 1);
-      if (!byKey[mk]) {
-        byKey[mk] = { key: mk, label: MON[td.getUTCMonth()] + " " + td.getUTCFullYear(), weeks: [] };
-        months.push(byKey[mk]);
+  // Weeks (Mon–Sun) covering [start, end]. A week belongs to the month of its Thursday,
+  // or of its first in-range day when that Thursday falls outside the range.
+  function buildCal(start, end) {
+    var s = ts(start), e = ts(end), dow = (new Date(s).getUTCDay() + 6) % 7;
+    var months = [], by = {};
+    for (var t = s - dow * DAY; t <= e; t += 7 * DAY) {
+      var thu = t + 3 * DAY, anchor = thu;
+      if (thu < s || thu > e) anchor = Math.max(t, s);
+      var ad = new Date(anchor), mk = ad.getUTCFullYear() + "-" + p2(ad.getUTCMonth() + 1);
+      if (!by[mk]) { by[mk] = { key: mk, label: MON[ad.getUTCMonth()] + " " + ad.getUTCFullYear(), m: ad.getUTCMonth(), weeks: [] }; months.push(by[mk]); }
+      var days = [];
+      for (var i = 0; i < 7; i++) {
+        var dt = t + i * DAY, dd = new Date(dt);
+        days.push({ iso: d2s(dt), n: dd.getUTCDate(), inRange: dt >= s && dt <= e, inMonth: dd.getUTCMonth() === by[mk].m });
       }
-      byKey[mk].weeks.push({ key: d2s(t), label: fmtRange(t) });
+      by[mk].weeks.push({ key: d2s(t), label: fmtRange(t), days: days });
     }
     return months;
-  })();
-  var WEEKS = [];
-  CAL.forEach(function (m) { m.weeks.forEach(function (w) { WEEKS.push(w); }); });
-  var TITLE_RANGE = CAL[0].label + " to " + CAL[CAL.length - 1].label;
-  function findWeek(k) { for (var i = 0; i < WEEKS.length; i++) if (WEEKS[i].key === k) return WEEKS[i]; return null; }
-  function weekLabel(k) { var w = findWeek(k); return w ? "the week of " + w.label : k; }
-  function monthLabelOf(mk) { for (var i = 0; i < CAL.length; i++) if (CAL[i].key === mk) return CAL[i].label; return mk; }
-  function dayName(wk, i) { var d = new Date(ts(wk) + i * DAY); return DOW[i] + " " + (d.getUTCMonth() + 1) + "/" + d.getUTCDate(); }
-
-  var STATE = { responses: [] };
-
-  var store = {
-    get: function (k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } },
-    set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
-  };
-  var view = store.get("av-view") === "overview" ? "overview" : "respond";
-  // draft.weeks[weekKey] = {s, date, days:[0-6]}
-  // draft.months[monthKey] = {s, date, days:{weekKey:[0-6]}}  (fills that month's weeks until a week is changed)
-  var draft = { name: "", weeks: {}, months: {} };
-  var phase = "loading", phaseMsg = "", myEmail = "";
-  var msg = "", msgErr = false, saving = false;
-  var app = document.getElementById("app");
-  var authBox = document.getElementById("auth");
-
-  function loadMine(rec) {
-    draft.weeks = clone(rec && rec.weeks);
-    draft.months = clone(rec && rec.months);
-    CAL.forEach(function (m) {
-      var mm = draft.months[m.key];
-      if (mm && mm.s) m.weeks.forEach(function (w) { delete draft.weeks[w.key]; });
-    });
-    if (rec && rec.name) draft.name = rec.name;
   }
 
-  function monthSet(mk) { var m = draft.months[mk]; return m && m.s ? m : null; }
-  // The answer that applies to a week: its month setting if one is set, otherwise its own
+  // ---------- app state ----------
+  var S = {
+    route: { name: "home" }, phase: "loading", phaseMsg: "",
+    profile: null, suggestedName: "", email: "",
+    events: null, ev: null, cal: [], weeks: [],
+    draft: { weeks: {}, months: {} }, dirty: false,
+    msg: "", msgErr: false, saving: false, menu: false,
+    hl: null, sel: null, delConfirm: false
+  };
+  var top = document.getElementById("top"), app = document.getElementById("app"), tip = document.getElementById("tip");
+  var C = null; // Clerk
+
+  function signedIn() { return !!(C && C.user); }
+
+  function api(path, method, body) {
+    return C.session.getToken().then(function (tok) {
+      return fetch(path, {
+        method: method || "GET",
+        headers: { "content-type": "application/json", authorization: "Bearer " + tok },
+        body: body ? JSON.stringify(body) : undefined
+      });
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { var e = new Error(d.error || "Something went wrong (" + r.status + ")."); e.status = r.status; throw e; }
+        return d;
+      });
+    });
+  }
+
+  // ---------- routing ----------
+  function parseRoute() {
+    var h = location.hash.replace(/^#\/?/, ""), p = h.split("/");
+    if (p[0] === "new") return { name: "new" };
+    if (p[0] === "account") return { name: "account" };
+    if (p[0] === "e" && p[1]) return { name: "event", id: p[1], tab: ["summary", "edit"].indexOf(p[2]) >= 0 ? p[2] : "respond" };
+    return { name: "home" };
+  }
+  function nav(h) { if (location.hash === h) go(); else location.hash = h; }
+
+  function go() {
+    S.route = parseRoute(); S.msg = ""; S.msgErr = false; S.menu = false; S.delConfirm = false; hideTip();
+    if (!signedIn() || !S.profile) { render(); return; }
+    var r = S.route;
+    if (r.name === "home") {
+      render();
+      api("/api/events").then(function (d) { S.events = d.events; render(); }, showErr);
+    } else if (r.name === "event") {
+      if (S.ev && S.ev.event.id === r.id) { render(); return; }
+      S.ev = null; render();
+      loadEvent(r.id);
+    } else render();
+  }
+  function loadEvent(id) {
+    return api("/api/event?id=" + encodeURIComponent(id)).then(function (d) {
+      S.ev = d; S.hl = null; S.sel = null;
+      S.cal = buildCal(d.event.start_date, d.event.end_date);
+      S.weeks = []; S.cal.forEach(function (m) { m.weeks.forEach(function (w) { S.weeks.push(w); }); });
+      loadMine(d.mine); S.dirty = false;
+      render();
+    }, function (e) { S.ev = { error: e.message }; render(); });
+  }
+  function showErr(e) { S.msg = e.message || String(e); S.msgErr = true; render(); }
+
+  // ---------- top bar ----------
+  function initials(n) { return String(n || "?").trim().split(/\s+/).map(function (w) { return w.charAt(0); }).slice(0, 2).join("").toUpperCase() || "?"; }
+  function topHTML() {
+    var h = '<div class="wrap"><a class="brand" href="#/"><i aria-hidden="true"><b></b><b></b><b></b><b></b><b></b><b></b></i>Group Availability</a>';
+    if (signedIn() && S.profile) {
+      var r = S.route.name;
+      h += '<nav class="navlinks" aria-label="Main"><a href="#/" class="' + (r === "home" || r === "event" ? "on" : "") + '">My events</a>' +
+        '<a href="#/new" class="hide-sm ' + (r === "new" ? "on" : "") + '">New event</a></nav>';
+      var img = C.user.imageUrl && C.user.hasImage !== false ? '<img src="' + esc(C.user.imageUrl) + '" alt="">' : esc(initials(S.profile.name));
+      h += '<div class="navright"><button class="avatar" data-act="menu" aria-haspopup="menu" aria-expanded="' + S.menu + '" aria-label="Account menu">' + img + "</button></div>";
+      if (S.menu) {
+        h += '<div class="menu" role="menu"><div class="who"><b>' + esc(S.profile.name) + "</b><span>" + esc(S.email) + "</span></div>" +
+          '<button role="menuitem" data-act="go" data-h="#/account">Account settings</button>' +
+          '<button role="menuitem" data-act="clerkprofile">Sign-in &amp; security</button>' +
+          '<button role="menuitem" data-act="signout">Sign out</button></div>';
+      }
+    } else if (signedIn()) {
+      h += '<div class="navright"><button data-act="signout" class="ghost">Sign out</button></div>';
+    } else if (S.phase !== "loading") {
+      h += '<div class="navright"><button class="primary" data-act="signin">Sign in</button></div>';
+    }
+    return h + "</div>";
+  }
+
+  // ---------- pages ----------
+  function landingHTML() {
+    var invited = S.route.name === "event";
+    var demo = [
+      ["2","c-open",""],["3","c-open",""],["4","c-busy","1"],["5","c-busy","2"],["6","c-open",""],["7","c-all",""],["8","c-all",""],
+      ["9","c-all",""],["10","c-all",""],["11","c-tent","?1"],["12","c-open",""],["13","c-busy","1"],["14","c-open",""],["15","c-open",""],
+      ["16","c-busy","3"],["17","c-busy","2"],["18","c-open",""],["19","c-all",""],["20","c-all",""],["21","c-all",""],["22","c-all",""]
+    ];
+    var g = demo.map(function (x) {
+      return '<span class="sd ' + x[1] + '" style="cursor:default"><span class="n">' + x[0] + '</span>' + (x[2] ? '<span class="b">' + x[2] + "</span>" : "") + "</span>";
+    }).join("");
+    return '<section class="hero"><div>' +
+      (invited ? '<p class="chip go" style="display:inline-block;margin-bottom:12px">You\'ve been invited to an event</p>' : "") +
+      "<h1>" + (invited ? "Sign in to share when you're free." : "Find the weeks that work for everyone.") + "</h1>" +
+      "<p>" + (invited
+        ? "Sign in with Google, mark each week Free, Busy, Set days or Not Sure Yet, and the organizer sees the open days at a glance."
+        : "Invite your group, have everyone mark their weeks, and see which days are open, where the conflicts are, and the best stretch for your event.") + "</p>" +
+      '<button class="primary" data-act="signin">' + (invited ? "Sign in to respond" : "Get started with Google") + "</button>" +
+      "</div>" +
+      '<div class="demo" aria-hidden="true"><div class="t"><span>Nov 2026</span><span class="lbl">Conflicts per day</span></div>' +
+      '<div class="g sumcal">' + g + "</div></div></section>" +
+      '<section class="features">' +
+      '<div class="card"><h3>Week by week, or a whole month</h3><p>Mark each week Free, Busy, Not Sure Yet, or tap the exact days you can make.</p></div>' +
+      '<div class="card"><h3>Open days at a glance</h3><p>A shared calendar shows open days in green and conflicts in red, with the count on each day.</p></div>' +
+      '<div class="card"><h3>Best windows for your event</h3><p>Set how long the event runs and see the stretches where the fewest people have a conflict.</p></div>' +
+      "</section>";
+  }
+
+  function onboardingHTML() {
+    return '<div class="narrow" style="margin:24px auto 0"><div class="card" style="padding:24px">' +
+      "<h1>Welcome! What should we call you?</h1>" +
+      '<p class="sub">This is the name other people see on your answers. You can change it later in Account settings.</p>' +
+      '<form data-form="profile"><div class="field"><label class="lbl" for="pname">Your name</label>' +
+      '<input id="pname" name="name" required maxlength="80" autocomplete="name" value="' + esc(S.suggestedName) + '"></div>' +
+      '<button class="primary" type="submit">Continue</button>' + msgHTML() + "</form></div></div>";
+  }
+
+  function accountHTML() {
+    return '<div class="narrow"><h1>Account settings</h1><p class="sub">Signed in as ' + esc(S.email) + "</p>" +
+      '<div class="card"><form data-form="profile"><div class="field"><label class="lbl" for="pname">Name shown to the group</label>' +
+      '<input id="pname" name="name" required maxlength="80" value="' + esc(S.profile.name) + '"></div>' +
+      '<button class="primary" type="submit">Save name</button>' + msgHTML() + "</form></div>" +
+      '<div class="card"><h2>Sign-in &amp; security</h2><p class="msg" style="margin:0 0 10px">Your Google account, email addresses and sessions are managed by our sign-in provider.</p>' +
+      '<div class="row"><button data-act="clerkprofile">Manage sign-in</button><button data-act="signout" class="ghost">Sign out</button></div></div></div>';
+  }
+
+  function msgHTML() { return S.msg ? '<p class="msg' + (S.msgErr ? " err" : "") + '" role="status">' + esc(S.msg) + "</p>" : ""; }
+
+  function homeHTML() {
+    var h = '<div class="head"><div><h1>My events</h1><p class="sub" style="margin:0">Events you organize or have been invited to.</p></div>' +
+      '<button class="primary" data-act="go" data-h="#/new">New event</button></div>' + msgHTML();
+    if (!S.events) return h + '<p class="msg">Loading your events…</p>';
+    if (!S.events.length) {
+      return h + '<div class="card empty"><h2>No events yet</h2><p class="sub">Create an event, invite people, and collect everyone\'s availability in one place.</p>' +
+        '<button class="primary" data-act="go" data-h="#/new">Create your first event</button></div>';
+    }
+    h += '<div class="events">';
+    S.events.forEach(function (e) {
+      h += '<a class="ev" href="#/e/' + esc(e.id) + '"><h3>' + esc(e.title) + "</h3>" +
+        '<div class="meta">' + esc(fmtSpan(e.start_date, e.end_date)) + " · " + esc(fmtBlockAdj(e.block_days)) + " event</div>" +
+        '<div class="chips"><span class="chip">' + (e.is_owner ? "Organizer" : "Invited" + (e.owner_name ? " by " + esc(e.owner_name) : "")) + "</span>" +
+        (e.me_responded ? '<span class="chip go">You responded</span>' : '<span class="chip todo">Needs your answers</span>') +
+        '<span class="chip">' + e.responded + " responded" + (e.invited ? " · " + e.invited + " invited" : "") + "</span></div></a>";
+    });
+    return h + "</div>";
+  }
+
+  // ----- event form (create / edit) -----
+  function defaultDates() {
+    var n = new Date(), y = n.getFullYear(), m = n.getMonth() + 1;
+    var s = Date.UTC(y, m, 1), e = Date.UTC(y, m + 4, 0);
+    return [d2s(s), d2s(e)];
+  }
+  function formHTML(ev) {
+    var isNew = !ev, dd = defaultDates();
+    var v = ev || { title: "", description: "", start_date: dd[0], end_date: dd[1], block_days: 7, open_join: true, invitees: [] };
+    var b = +v.block_days || 1, unit = b % 7 === 0 ? "weeks" : "days", amt = unit === "weeks" ? b / 7 : b;
+    var h = '<div class="narrow">' + (isNew ? '<a class="crumb" href="#/">← My events</a><h1>New event</h1><p class="sub">Set the period to poll, how long the event needs, and who to invite.</p>'
+      : "") +
+      '<form data-form="event" class="card" style="padding:18px">' +
+      '<div class="field"><label class="lbl" for="ftitle">Event name</label><input id="ftitle" name="title" required maxlength="120" placeholder="Family trip, offsite, game weekend…" value="' + esc(v.title) + '"></div>' +
+      '<div class="field"><label class="lbl" for="fdesc">Details (optional)</label><textarea id="fdesc" name="description" maxlength="1000" placeholder="What it is, where, anything people should know">' + esc(v.description) + "</textarea></div>" +
+      '<h2 style="margin-top:6px">When</h2><div class="grid2">' +
+      '<div class="field"><label class="lbl" for="fstart">Poll from</label><input type="date" id="fstart" name="start_date" required value="' + esc(v.start_date) + '"></div>' +
+      '<div class="field"><label class="lbl" for="fend">Poll until</label><input type="date" id="fend" name="end_date" required value="' + esc(v.end_date) + '"></div>' +
+      '<div class="field"><label class="lbl" for="famt">Event length</label><div class="row" style="flex-wrap:nowrap">' +
+      '<input type="number" id="famt" name="block_amt" min="1" max="400" required value="' + amt + '" style="max-width:90px">' +
+      '<select id="funit" name="block_unit" style="min-height:38px"><option value="days"' + (unit === "days" ? " selected" : "") + '>days</option><option value="weeks"' + (unit === "weeks" ? " selected" : "") + ">weeks</option></select></div></div></div>" +
+      '<p class="msg" style="margin:-4px 0 14px">The summary uses the event length to find the best stretches of time.</p>' +
+      '<h2>Who</h2><div class="field"><label class="lbl" for="finv">Invite by email (comma or one per line)</label>' +
+      '<textarea id="finv" name="invitees" placeholder="sam@gmail.com, alex@example.com">' + esc((v.invitees || []).join("\n")) + "</textarea></div>" +
+      '<label class="check"><input type="checkbox" name="open_join"' + (v.open_join ? " checked" : "") + "><span>Anyone with the link can join<br><span class=\"lbl\">Handy for sharing in a group chat. Turn off to limit the event to the emails above.</span></span></label>" +
+      '<div class="row" style="margin-top:16px"><button class="primary" type="submit"' + (S.saving ? " disabled" : "") + ">" + (isNew ? "Create event" : "Save changes") + "</button>" +
+      (isNew ? '<a href="#/">Cancel</a>' : "") + "</div>" + msgHTML() + "</form>";
+    if (!isNew) {
+      h += '<div class="card"><h2>Delete event</h2><p class="msg" style="margin:0 0 10px">Removes the event and everyone\'s answers. This can\'t be undone.</p>' +
+        (S.delConfirm
+          ? '<div class="row"><button class="danger" data-act="delete">Yes, delete it</button><button data-act="delcancel">Keep it</button></div>'
+          : '<button class="danger" data-act="delask">Delete event…</button>') + "</div>";
+    }
+    return h + "</div>";
+  }
+
+  // ----- event page -----
+  function eventHTML() {
+    var r = S.route;
+    if (!S.ev) return '<p class="msg">Loading event…</p>';
+    if (S.ev.error) return '<a class="crumb" href="#/">← My events</a><div class="card"><h2>Can\'t open this event</h2><p class="msg err">' + esc(S.ev.error) + "</p></div>";
+    var e = S.ev.event, tab = r.tab;
+    if (tab === "edit" && !e.is_owner) tab = "respond";
+    var link = location.origin + location.pathname + "#/e/" + e.id;
+    var h = '<a class="crumb" href="#/">← My events</a><div class="head" style="margin-bottom:0"><div style="min-width:0"><h1>' + esc(e.title) + "</h1>" +
+      '<p class="sub" style="margin:0">' + esc(fmtSpan(e.start_date, e.end_date)) + " · " + esc(fmtBlockAdj(e.block_days)) + " event</p>" +
+      (e.description ? '<p style="margin:8px 0 0;max-width:70ch;white-space:pre-line">' + esc(e.description) + "</p>" : "") + "</div>" +
+      '<div class="share" style="max-width:440px;width:100%"><input id="sharelink" readonly value="' + esc(link) + '" aria-label="Invite link"><button data-act="copy">Copy invite link</button></div></div>';
+    h += '<nav class="tabs"><a href="#/e/' + e.id + '" class="' + (tab === "respond" ? "on" : "") + '">My availability</a>' +
+      '<a href="#/e/' + e.id + '/summary" class="' + (tab === "summary" ? "on" : "") + '">Group summary</a>' +
+      (e.is_owner ? '<a href="#/e/' + e.id + '/edit" class="' + (tab === "edit" ? "on" : "") + '">Edit event</a>' : "") + "</nav>";
+    if (tab === "summary") return h + summaryHTML();
+    if (tab === "edit") return h + formHTML(e);
+    return h + respondHTML();
+  }
+
+  // ----- respond (my availability) -----
+  function loadMine(rec) {
+    S.draft = { weeks: clone(rec && rec.weeks), months: clone(rec && rec.months) };
+    S.cal.forEach(function (m) {
+      var mm = S.draft.months[m.key];
+      if (mm && mm.s) m.weeks.forEach(function (w) { delete S.draft.weeks[w.key]; });
+    });
+  }
+  function monthSet(mk) { var m = S.draft.months[mk]; return m && m.s ? m : null; }
   function effective(w, mk) {
     var m = monthSet(mk);
-    if (m) return { s: m.s, note: m.note, date: m.date, days: (m.days && m.days[w.key]) || [] };
-    return draft.weeks[w.key] || {};
+    if (m) return { s: m.s, date: m.date, days: (m.days && m.days[w.key]) || [] };
+    return S.draft.weeks[w.key] || {};
   }
-
   function answeredCount() {
     var n = 0;
-    CAL.forEach(function (m) { m.weeks.forEach(function (w) { if (effective(w, m.key).s) n++; }); });
+    S.cal.forEach(function (m) { m.weeks.forEach(function (w) { if (effective(w, m.key).s) n++; }); });
     return n;
   }
-
   function opts(cur) {
-    return STATUS.map(function (s) {
-      return '<option value="' + s[0] + '"' + (cur === s[0] ? " selected" : "") + ">" + s[1] + "</option>";
-    }).join("");
+    return STATUS.map(function (s) { return '<option value="' + s[0] + '"' + (cur === s[0] ? " selected" : "") + ">" + s[1] + "</option>"; }).join("");
   }
-
-  function tabs() {
-    return '<div class="tabs" role="group" aria-label="View">' +
-      '<button data-act="view" data-v="respond" aria-pressed="' + (view === "respond") + '">Respond</button>' +
-      '<button data-act="view" data-v="overview" aria-pressed="' + (view === "overview") + '">Overview</button></div>';
+  function legendHTML() {
+    return '<div class="legend">' + STATUS.map(function (s) { return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>"; }).join("") +
+      '<span><i class="st-none"></i>No response</span></div>';
   }
-
-  function saveBar() {
-    var can = phase === "ready" && !saving;
-    var status = saving ? "Saving…" : "";
-    return '<div class="save"><span class="msg">' + answeredCount() + " of " + WEEKS.length + " weeks answered</span>" +
-      '<button class="primary" data-act="save"' + (can ? "" : " disabled") + ">Save my answers</button>" +
-      (status ? '<span class="msg">' + esc(status) + "</span>" : "") +
-      (msg ? '<span class="msg' + (msgErr ? " err" : "") + '">' + esc(msg) + "</span>" : "") + "</div>";
-  }
-
-  function monthCard(m) {
-    var my = +m.key.split("-")[0], mm = +m.key.split("-")[1] - 1;
+  function respondMonth(m) {
     var mset = monthSet(m.key);
     var h = '<section class="card"><div class="mhead"><h2>' + esc(m.label) + "</h2>" +
       '<label class="mset"><span class="lbl">Whole month</span><select data-field="month" data-m="' + m.key + '">' +
       '<option value="">Set each week</option>' + opts(mset ? mset.s : "") + "</select></label></div>";
-    if (mset && mset.s === "partial") {
-      h += '<p class="mdetail lbl">Tap the days you\'re free below. Untapped days count as busy.</p>';
-    }
+    if (mset && mset.s === "partial") h += '<p class="mdetail lbl">Tap the days you\'re free below. Untapped days count as busy.</p>';
     if (mset && mset.s === "tentative") {
       h += '<label class="mdetail tdate"><span class="lbl">When do you think you will know?</span>' +
         '<input type="date" data-field="date" data-m="' + m.key + '" value="' + esc(mset.date || "") + '"></label>';
@@ -234,27 +493,20 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
     h += '<div class="cal"><div class="hd l"></div><div class="hd l">Status</div>' +
       DOW.map(function (d) { return '<div class="hd"><span class="lg">' + d + '</span><span class="sm">' + d.charAt(0) + "</span></div>"; }).join("");
     m.weeks.forEach(function (w, i) {
-      var wa = draft.weeks[w.key] || {};
-      var val = mset ? mset.s : (wa.s || "");
+      var wa = S.draft.weeks[w.key] || {}, val = mset ? mset.s : (wa.s || "");
       h += '<div class="wk">Week ' + (i + 1) + "</div>" +
         '<div class="ws"><select data-field="week" data-w="' + w.key + '" aria-label="Week ' + (i + 1) + " status (" + esc(w.label) + ')">' +
         '<option value="">Not set</option>' + opts(val) + "</select></div>";
-      var e = effective(w, m.key), t0 = ts(w.key), isP = e.s === "partial", picked = e.days || [];
-      for (var d = 0; d < 7; d++) {
-        var dt = new Date(t0 + d * DAY), inM = dt.getUTCFullYear() === my && dt.getUTCMonth() === mm;
-        var cls = "d " + (e.s ? ST_CLS[e.s] : "st-none") + (inM ? "" : " out");
-        if (isP) {
-          var on = picked.indexOf(d) >= 0;
-          h += '<button class="' + cls + " tap" + (on ? " pk" : "") + '" data-act="day" data-w="' + w.key + '" data-i="' + d + '"' +
-            (mset ? ' data-m="' + m.key + '"' : "") + ' aria-pressed="' + on + '" aria-label="' + esc(dayName(w.key, d)) + (on ? ", free" : ", not free") + '">' +
-            dt.getUTCDate() + "</button>";
-        } else {
-          h += '<div class="' + cls + '">' + dt.getUTCDate() + "</div>";
-        }
-      }
-      if (!mset && wa.s === "partial") {
-        h += '<div class="hint">Tap the days you\'re free. Untapped days count as busy.</div>';
-      }
+      var e = effective(w, m.key), isP = e.s === "partial", picked = e.days || [];
+      w.days.forEach(function (d, di) {
+        var cls = "d " + (e.s ? ST_CLS[e.s] : "st-none") + (d.inMonth ? "" : " out") + (d.inRange ? "" : " off");
+        if (isP && d.inRange) {
+          var on = picked.indexOf(di) >= 0;
+          h += '<button class="' + cls + " tap" + (on ? " pk" : "") + '" data-act="day" data-w="' + w.key + '" data-i="' + di + '"' +
+            (mset ? ' data-m="' + m.key + '"' : "") + ' aria-pressed="' + on + '" aria-label="' + esc(fmtShort(d.iso)) + (on ? ", free" : ", not free") + '">' + d.n + "</button>";
+        } else h += '<div class="' + cls + '">' + d.n + "</div>";
+      });
+      if (!mset && wa.s === "partial") h += '<div class="hint">Tap the days you\'re free. Untapped days count as busy.</div>';
       if (!mset && wa.s === "tentative") {
         h += '<label class="wdetail tdate"><span class="lbl">When do you think you will know?</span>' +
           '<input type="date" data-field="date" data-w="' + w.key + '" value="' + esc(wa.date || "") + '"></label>';
@@ -262,255 +514,342 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
     });
     return h + "</div></section>";
   }
-
   function respondHTML() {
-    var h = "<h1>" + esc(CFG.title) + "</h1>" +
-      '<p class="sub">' + esc(TITLE_RANGE) + ". Set each week in the dropdowns, or set a whole month and then change any week that differs. For Set days, tap the days you're free.</p>" + tabs();
-    h += '<div class="card"><div class="who"><span class="lbl">Signed in as ' + esc(myEmail || "you") + '</span>' +
-      '<button class="link" data-act="signout">Sign out</button></div>' +
-      '<div class="field"><label><span class="lbl">Name shown to the group</span>' +
-      '<input data-field="name" value="' + esc(draft.name) + '" autocomplete="name" maxlength="80"></label></div></div>';
-    h += '<div class="legend">' + STATUS.map(function (s) {
-      return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>";
-    }).join("") + '<span><i class="st-none"></i>No response</span></div>';
-    h += '<div class="months">';
-    CAL.forEach(function (m) { h += monthCard(m); });
-    return h + "</div>" + saveBar();
+    var h = '<p class="sub">Set each week, or set a whole month and change any week that differs. For Set days, tap the days you\'re free.</p>' + legendHTML() + '<div class="months">';
+    S.cal.forEach(function (m) { h += respondMonth(m); });
+    h += "</div>";
+    return h + '<div class="save"><span class="msg" style="margin:0">' + answeredCount() + " of " + S.weeks.length + " weeks answered" + (S.dirty ? " · unsaved changes" : "") + "</span>" +
+      '<button class="primary" data-act="save"' + (S.saving ? " disabled" : "") + ">" + (S.saving ? "Saving…" : "Save my answers") + "</button>" + msgHTML() + "</div>";
   }
 
-  function overviewHTML() {
-    var resp = Object.keys(STATE.responses).map(function (k) { return STATE.responses[k]; })
-      .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
-    var n = resp.length;
-    var h = "<h1>" + esc(CFG.title) + '</h1><p class="sub">' + esc(TITLE_RANGE) + " · " + n + (n === 1 ? " response" : " responses") + "</p>" + tabs();
-    if (!n) {
-      h += '<div class="card"><p class="msg">No answers yet. Share the link and ask people to use the Respond tab.</p></div>';
-    } else {
-      h += '<div class="card people">' + resp.map(function (r) { return "<span" + (r.mine ? ' class="me"' : "") + ">" + esc(r.name) + (r.mine ? " (you)" : "") + "</span>"; }).join("") + "</div>";
-    }
-    h += '<div class="legend">' + STATUS.map(function (s) {
-      return '<span><i class="' + ST_CLS[s[0]] + '"></i>' + s[1] + "</span>";
-    }).join("") + '<span><i class="st-none"></i>No response</span></div>';
-    var rows = [], top = 0;
-    CAL.forEach(function (m) {
-      m.weeks.forEach(function (w) {
-        var c = { open: 0, partial: 0, tentative: 0, na: 0 }, none = 0, notes = [], free = [0, 0, 0, 0, 0, 0, 0], anyP = false;
-        resp.forEach(function (r) {
-          var a = r.weeks && r.weeks[w.key];
-          if (!a || c[a.s] === undefined) { none++; return; }
-          c[a.s]++;
-          if (a.s === "open") for (var i = 0; i < 7; i++) free[i]++;
-          if (a.s === "partial") {
-            anyP = true;
-            var ds = cleanDays(a.days);
-            ds.forEach(function (i) { free[i]++; });
-            var parts = [];
-            if (ds.length) parts.push("free " + ds.map(function (i) { return DOW[i]; }).join(", "));
-            notes.push(esc(r.name) + ": " + (parts.join(". ") || "partial"));
-          }
-          if (a.s === "tentative") notes.push(esc(r.name) + ": not sure yet, will know by " + esc(fmtDate(a.date)));
+  // ----- summary -----
+  function stateOn(person, wkKey, di) {
+    var a = person.weeks && person.weeks[wkKey];
+    if (!a || !a.s) return "none";
+    if (a.s === "open") return "free";
+    if (a.s === "na") return "busy";
+    if (a.s === "tentative") return "tent";
+    if (a.s === "partial") return (a.days || []).indexOf(di) >= 0 ? "free" : "busy";
+    return "none";
+  }
+  function dayStats(wkKey, di) {
+    var st = { free: [], busy: [], tent: [], none: [] };
+    S.ev.people.forEach(function (p) {
+      var s = p.responded ? stateOn(p, wkKey, di) : "none";
+      st[s].push(p);
+    });
+    return st;
+  }
+  function inRangeDays() {
+    var out = [];
+    S.weeks.forEach(function (w) { w.days.forEach(function (d, di) { if (d.inRange) out.push({ iso: d.iso, w: w.key, i: di }); }); });
+    out.sort(function (a, b) { return a.iso < b.iso ? -1 : 1; });
+    return out;
+  }
+  function bestWindows() {
+    var days = inRangeDays(), L = Math.max(1, +S.ev.event.block_days || 1);
+    var resp = S.ev.people.filter(function (p) { return p.responded; });
+    if (!resp.length || days.length < L) return [];
+    var cand = [];
+    for (var i = 0; i + L <= days.length; i++) {
+      var busy = {}, tent = {}, unk = {};
+      for (var j = i; j < i + L; j++) {
+        resp.forEach(function (p) {
+          var s = stateOn(p, days[j].w, days[j].i);
+          if (s === "busy") busy[p.id] = p; else if (s === "tent") tent[p.id] = p; else if (s === "none") unk[p.id] = p;
         });
-        if (c.open > top) top = c.open;
-        rows.push({ m: m, w: w, c: c, none: none, notes: notes, free: free, anyP: anyP });
-      });
-    });
-    var lastM = "";
+      }
+      Object.keys(busy).forEach(function (k) { delete tent[k]; delete unk[k]; });
+      Object.keys(tent).forEach(function (k) { delete unk[k]; });
+      var vals = function (o) { return Object.keys(o).map(function (k) { return o[k]; }); };
+      cand.push({ start: days[i].iso, end: days[i + L - 1].iso, si: i, busy: vals(busy), tent: vals(tent), unk: vals(unk) });
+    }
+    cand.sort(function (a, b) { return (a.busy.length + a.unk.length) - (b.busy.length + b.unk.length) || a.busy.length - b.busy.length || a.tent.length - b.tent.length || a.si - b.si; });
+    var picked = [];
+    for (var k = 0; k < cand.length && picked.length < 3; k++) {
+      var c = cand[k];
+      if (picked.some(function (p) { return Math.abs(p.si - c.si) < L; })) continue;
+      picked.push(c);
+    }
+    return picked;
+  }
+  function names(list) { return list.map(function (p) { return esc(p.name); }).join(", "); }
+  function summaryHTML() {
+    var people = S.ev.people, resp = people.filter(function (p) { return p.responded; });
+    var pending = people.filter(function (p) { return !p.responded; });
+    var e = S.ev.event;
+    var h = '<div class="grid2" style="margin-bottom:12px;align-items:start"><div class="card" style="margin:0"><h2>Who\'s in</h2>' +
+      '<p class="msg" style="margin:0 0 8px">' + resp.length + " of " + people.length + " responded</p>" +
+      '<div class="people">' + people.map(function (p) {
+        return '<span class="' + (p.me ? "me" : "") + (p.responded ? "" : " pend") + '">' + esc(p.name) + (p.me ? " (you)" : "") + (p.organizer ? " · organizer" : "") + (p.responded ? "" : " · no response") + "</span>";
+      }).join("") + "</div></div>";
+    h += '<div class="card" style="margin:0"><h2>Best ' + esc(fmtBlockAdj(e.block_days)) + " windows</h2>";
+    var wins = bestWindows();
+    if (!resp.length) h += '<p class="msg" style="margin:0">Windows appear once people respond.</p>';
+    else if (!wins.length) h += '<p class="msg" style="margin:0">The polling period is shorter than the event length.</p>';
+    else {
+      h += '<div class="windows">' + wins.map(function (w) {
+        var on = S.hl && S.hl.start === w.start;
+        var parts = [];
+        if (w.busy.length) parts.push(w.busy.length + " with conflicts: " + names(w.busy));
+        if (w.tent.length) parts.push(w.tent.length + " not sure: " + names(w.tent));
+        if (w.unk.length) parts.push(w.unk.length + " haven't answered these days: " + names(w.unk));
+        var s = parts.length ? parts.join(" · ") : "Everyone who responded is free";
+        return '<button class="win" data-act="hl" data-s="' + w.start + '" data-e="' + w.end + '" aria-pressed="' + !!on + '"><span class="r">' +
+          esc(fmtShort(w.start)) + " – " + esc(fmtShort(w.end)) + '</span><span class="s">' + s + "</span></button>";
+      }).join("") + "</div>" + (pending.length ? '<p class="msg">Not counting ' + pending.length + " who haven't responded.</p>" : "");
+    }
+    h += "</div></div>";
+    h += '<div class="legend"><span><i style="background:color-mix(in srgb,var(--open) 55%,var(--card))"></i>Everyone free</span>' +
+      '<span><i style="background:color-mix(in srgb,var(--open) 30%,var(--card))"></i>No conflicts yet</span>' +
+      '<span><i class="st-na"></i>Conflicts (number = people busy)</span><span><i class="st-tentative"></i>Someone not sure</span>' +
+      '<span><i class="st-none"></i>No responses</span><span>Hover or tap a day for details</span></div>';
     h += '<div class="months">';
-    rows.forEach(function (r) {
-      if (r.m.key !== lastM) {
-        if (lastM) h += "</section>";
-        lastM = r.m.key;
-        h += '<section class="card"><h2>' + esc(r.m.label) + "</h2>";
-      }
-      var c = r.c, best = top > 0 && c.open === top;
-      var segs = STATUS.map(function (s) {
-        var pct = n ? (c[s[0]] / n * 100) : 0;
-        return '<i class="s-' + s[0] + '" style="width:' + pct + '%"></i>';
-      }).join("");
-      if (r.none) segs += '<i class="s-none" style="width:' + (r.none / n * 100) + '%"></i>';
-      h += '<div class="ovw"><div class="wl">Week of ' + esc(r.w.label) + (best ? '<span class="tag">Most free</span>' : "") + "</div>" +
-        '<div class="bar">' + segs + "</div>" +
-        '<div class="counts">' + STATUS.map(function (s) { return s[1] + " " + c[s[0]]; }).join(" · ") +
-        (r.none ? " · No response " + r.none : "") + "</div>";
-      if (r.anyP) {
-        h += '<div class="free">Free by day: ' + DOW.map(function (d, i) { return d + " <b>" + r.free[i] + "</b>"; }).join(" · ") + "</div>";
-      }
-      if (r.notes.length) h += '<ul class="notes">' + r.notes.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
-      h += "</div>";
+    S.cal.forEach(function (m) {
+      h += '<section class="card"><div class="mhead"><h2>' + esc(m.label) + '</h2></div><div class="sumcal">' +
+        DOW.map(function (d) { return '<div class="hd"><span class="lg">' + d + '</span><span class="sm">' + d.charAt(0) + "</span></div>"; }).join("");
+      m.weeks.forEach(function (w) {
+        w.days.forEach(function (d, di) {
+          if (!d.inRange) { h += '<div class="sd blank" aria-hidden="true"></div>'; return; }
+          var st = dayStats(w.key, di), R = st.free.length + st.busy.length + st.tent.length;
+          var cls = "c-none", badge = "", style = "";
+          if (!R) cls = "c-none";
+          else if (st.busy.length) { cls = "c-busy"; badge = String(st.busy.length); style = ' style="--lv:' + Math.round(25 + 45 * st.busy.length / Math.max(R, 1)) + '%"'; }
+          else if (st.tent.length) { cls = "c-tent"; badge = "?" + st.tent.length; }
+          else cls = st.none.length ? "c-open" : "c-all";
+          var hl = S.hl && d.iso >= S.hl.start && d.iso <= S.hl.end ? " hl" : "";
+          var sel = S.sel === d.iso ? " sel" : "";
+          var label = fmtShort(d.iso) + ": " + (R ? st.busy.length + " busy, " + st.tent.length + " not sure, " + st.free.length + " free" : "no responses");
+          h += '<button class="sd ' + cls + (d.inMonth ? "" : " out") + hl + sel + '"' + style + ' data-act="dayinfo" data-w="' + w.key + '" data-i="' + di + '" data-iso="' + d.iso + '" aria-label="' + esc(label) + '">' +
+            '<span class="n">' + d.n + "</span>" + (badge ? '<span class="b">' + badge + "</span>" : "") + "</button>";
+        });
+      });
+      h += "</div></section>";
     });
-    if (lastM) h += "</section>";
     return h + "</div>";
   }
 
+  // ----- tooltip -----
+  function tipHTML(wk, di, iso) {
+    var st = dayStats(wk, di), w = S.ev.people;
+    var grp = function (title, list, extra) {
+      if (!list.length) return "";
+      return '<div class="grp"><b>' + title + " (" + list.length + ")</b><div>" + list.map(function (p) { return esc(p.name) + (extra ? extra(p) : ""); }).join("<br>") + "</div></div>";
+    };
+    var tentNote = function (p) { var a = p.weeks[wk]; return a && a.date ? ' <span class="lbl">· knows by ' + esc(fmtDate(a.date)) + "</span>" : ""; };
+    return "<h4>" + esc(fmtDate(iso, true)) + "</h4>" +
+      grp("Busy", st.busy) + grp("Not sure yet", st.tent, tentNote) + grp("Free", st.free) + grp("No response", st.none) +
+      (w.length ? "" : '<div class="lbl">Nobody invited yet.</div>');
+  }
+  function showTip(el) {
+    tip.innerHTML = tipHTML(el.getAttribute("data-w"), +el.getAttribute("data-i"), el.getAttribute("data-iso"));
+    tip.hidden = false;
+    var r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    var x = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), window.innerWidth - tw - 8);
+    var y = r.bottom + 8; if (y + th > window.innerHeight - 8) y = Math.max(8, r.top - th - 8);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.hidden = true; }
+
+  // ---------- render ----------
   function render() {
-    var head = "<h1>" + esc(CFG.title) + "</h1>";
-    if (phase !== "ready") {
-      authBox.hidden = phase !== "signin";
-      if (phase === "loading") app.innerHTML = head + '<p class="sub">Loading…</p>';
-      else if (phase === "signin") app.innerHTML = head + '<p class="sub">' + esc(TITLE_RANGE) + ". Sign in with Google so your answers are saved to you and only you can change them.</p>";
-      else app.innerHTML = head + '<div class="card"><p class="msg err">' + esc(phaseMsg) + "</p></div>";
-      return;
+    top.innerHTML = topHTML();
+    var h;
+    if (S.phase === "loading") h = '<p class="msg">Loading…</p>';
+    else if (S.phase === "error") h = '<div class="card narrow"><h2>Something went wrong</h2><p class="msg err">' + esc(S.phaseMsg) + "</p></div>";
+    else if (!signedIn()) h = landingHTML();
+    else if (!S.profile) h = onboardingHTML();
+    else {
+      var r = S.route.name;
+      h = r === "new" ? formHTML(null) : r === "account" ? accountHTML() : r === "event" ? eventHTML() : homeHTML();
     }
-    authBox.hidden = true;
-    app.innerHTML = view === "overview" ? overviewHTML() : respondHTML();
+    app.innerHTML = h;
   }
 
-  function api(method, body) {
-    return window.Clerk.session.getToken().then(function (tok) {
-      return fetch("/api/responses", {
-        method: method,
-        headers: { "content-type": "application/json", authorization: "Bearer " + tok },
-        body: body ? JSON.stringify(body) : undefined
-      });
-    }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (d) {
-        if (!r.ok) throw new Error(d.error || "Request failed (" + r.status + ").");
-        return d;
-      });
-    });
+  // ---------- actions ----------
+  function readEventForm(f) {
+    var amt = Math.max(1, Math.round(+f.block_amt.value || 1));
+    return {
+      title: f.title.value, description: f.description.value,
+      start_date: f.start_date.value, end_date: f.end_date.value,
+      block_days: f.block_unit.value === "weeks" ? amt * 7 : amt,
+      invitees: f.invitees.value, open_join: f.open_join.checked
+    };
   }
-
-  function refresh(loadDraft) {
-    return api("GET").then(function (d) {
-      STATE.responses = d.responses || [];
-      if (loadDraft && d.me) loadMine(d.me);
-    });
-  }
-
-  function fail(t) { msg = t; msgErr = true; render(); }
-
-  function save() {
-    var name = (draft.name || "").trim();
-    if (!name) return fail("Enter your name first.");
+  function saveResponse() {
     var errs = [], months = {}, weeks = {};
-    CAL.forEach(function (m) {
+    S.cal.forEach(function (m) {
       var ms = monthSet(m.key);
       if (ms) {
         var anyDay = false, mdays = {};
         if (ms.s === "partial") {
-          m.weeks.forEach(function (w) {
-            var ds = cleanDays(ms.days && ms.days[w.key]);
-            if (ds.length) { anyDay = true; mdays[w.key] = ds; }
-          });
+          m.weeks.forEach(function (w) { var ds = cleanDays(ms.days && ms.days[w.key]); if (ds.length) { anyDay = true; mdays[w.key] = ds; } });
           if (!anyDay) errs.push("For " + m.label + ", tap at least one day you're free (or choose Busy).");
         }
         if (ms.s === "tentative" && !ms.date) errs.push("For " + m.label + ", pick when you think you will know.");
-        months[m.key] = { s: ms.s, note: "", date: ms.s === "tentative" ? ms.date : "", days: ms.s === "partial" ? mdays : {} };
+        months[m.key] = { s: ms.s, date: ms.s === "tentative" ? ms.date : "", days: ms.s === "partial" ? mdays : {} };
       }
       m.weeks.forEach(function (w) {
         var a = effective(w, m.key);
         if (!a || !a.s) return;
         var ds = a.s === "partial" ? cleanDays(a.days) : [];
         if (!ms) {
-          if (a.s === "partial" && !ds.length) errs.push("For " + weekLabel(w.key) + ", tap at least one day you're free (or choose Busy).");
-          if (a.s === "tentative" && !a.date) errs.push("For " + weekLabel(w.key) + ", pick when you think you will know.");
+          if (a.s === "partial" && !ds.length) errs.push("For the week of " + w.label + ", tap at least one day you're free (or choose Busy).");
+          if (a.s === "tentative" && !a.date) errs.push("For the week of " + w.label + ", pick when you think you will know.");
         }
-        weeks[w.key] = { s: a.s, note: "", date: a.s === "tentative" ? a.date : "", days: ds };
+        weeks[w.key] = { s: a.s, date: a.s === "tentative" ? a.date : "", days: ds };
       });
     });
-    if (errs.length) return fail(errs[0] + (errs.length > 1 ? " (" + (errs.length - 1) + " more to fix.)" : ""));
-    saving = true; msg = ""; msgErr = false; render();
-    api("PUT", { name: name, weeks: weeks, months: months })
-      .then(function () { return refresh(false); })
-      .then(function () { saving = false; msg = "Saved."; msgErr = false; render(); },
-            function (e) { saving = false; fail("Could not save: " + (e.message || e)); });
+    if (errs.length) { S.msg = errs[0] + (errs.length > 1 ? " (" + (errs.length - 1) + " more to fix.)" : ""); S.msgErr = true; render(); return; }
+    S.saving = true; S.msg = ""; render();
+    var id = S.ev.event.id;
+    api("/api/response?id=" + encodeURIComponent(id), "PUT", { weeks: weeks, months: months })
+      .then(function () { return loadEvent(id); })
+      .then(function () { S.saving = false; S.msg = "Saved."; S.msgErr = false; render(); },
+            function (e) { S.saving = false; showErr(e); });
   }
-
   function toggleDay(b) {
-    var w = b.getAttribute("data-w"), i = +b.getAttribute("data-i"), mk = b.getAttribute("data-m"), holder;
+    var w = b.getAttribute("data-w"), i = +b.getAttribute("data-i"), mk = b.getAttribute("data-m"), cur;
     if (mk) {
-      var M = draft.months[mk];
-      if (!M) return;
-      M.days = M.days || {};
-      holder = { get: function () { return M.days[w] || []; }, set: function (v) { M.days[w] = v; } };
+      var M = S.draft.months[mk]; if (!M) return; M.days = M.days || {};
+      cur = (M.days[w] || []).slice(); var at = cur.indexOf(i); if (at >= 0) cur.splice(at, 1); else cur.push(i); M.days[w] = cleanDays(cur);
     } else {
-      var W = draft.weeks[w];
-      if (!W) return;
-      holder = { get: function () { return W.days || []; }, set: function (v) { W.days = v; } };
+      var W = S.draft.weeks[w]; if (!W) return;
+      cur = (W.days || []).slice(); var at2 = cur.indexOf(i); if (at2 >= 0) cur.splice(at2, 1); else cur.push(i); W.days = cleanDays(cur);
     }
-    var cur = holder.get().slice(), at = cur.indexOf(i);
-    if (at >= 0) cur.splice(at, 1); else cur.push(i);
-    holder.set(cleanDays(cur));
-    msg = ""; render();
+    S.dirty = true; S.msg = ""; render();
     var again = app.querySelector('button[data-act="day"][data-w="' + w + '"][data-i="' + i + '"]');
     if (again) again.focus();
   }
+  function openSignIn() {
+    C.openSignIn({ forceRedirectUrl: location.href, signUpForceRedirectUrl: location.href });
+  }
 
-  app.addEventListener("click", function (e) {
+  document.addEventListener("click", function (e) {
     var b = e.target.closest ? e.target.closest("[data-act]") : null;
-    if (!b || b.disabled) return;
+    if (S.menu && !(e.target.closest && e.target.closest(".menu, [data-act=menu]"))) { S.menu = false; render(); }
+    if (!b || b.disabled) {
+      if (!(e.target.closest && e.target.closest(".sd"))) { if (S.sel) { S.sel = null; hideTip(); render(); } }
+      return;
+    }
     var act = b.getAttribute("data-act");
-    if (act === "view") {
-      view = b.getAttribute("data-v"); store.set("av-view", view); msg = ""; render();
-    } else if (act === "day") {
-      toggleDay(b);
-    } else if (act === "save") {
-      save();
-    } else if (act === "signout") {
-      window.Clerk.signOut().then(function () { location.reload(); });
+    if (act === "signin") openSignIn();
+    else if (act === "signout") C.signOut().then(function () { location.hash = "#/"; location.reload(); });
+    else if (act === "menu") { S.menu = !S.menu; render(); }
+    else if (act === "clerkprofile") { S.menu = false; render(); C.openUserProfile(); }
+    else if (act === "go") nav(b.getAttribute("data-h"));
+    else if (act === "save") saveResponse();
+    else if (act === "day") toggleDay(b);
+    else if (act === "copy") {
+      var inp = document.getElementById("sharelink"), done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy invite link"; }, 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, function () { inp.select(); });
+      else inp.select();
+    } else if (act === "hl") {
+      var s = b.getAttribute("data-s");
+      S.hl = S.hl && S.hl.start === s ? null : { start: s, end: b.getAttribute("data-e") }; render();
+    } else if (act === "dayinfo") {
+      S.sel = S.sel === b.getAttribute("data-iso") ? null : b.getAttribute("data-iso");
+      render();
+      if (S.sel) { var el = app.querySelector('.sd[data-iso="' + S.sel + '"]'); if (el) showTip(el); } else hideTip();
+    } else if (act === "delask") { S.delConfirm = true; render(); }
+    else if (act === "delcancel") { S.delConfirm = false; render(); }
+    else if (act === "delete") {
+      api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "DELETE").then(function () { S.ev = null; nav("#/"); }, showErr);
+    }
+  });
+
+  app.addEventListener("mouseover", function (e) {
+    var el = e.target.closest && e.target.closest(".sd[data-act=dayinfo]");
+    if (el && !S.sel) showTip(el);
+  });
+  app.addEventListener("mouseout", function (e) {
+    var el = e.target.closest && e.target.closest(".sd[data-act=dayinfo]");
+    if (el && !S.sel && !(e.relatedTarget && el.contains(e.relatedTarget))) hideTip();
+  });
+  app.addEventListener("focusin", function (e) { if (e.target.matches && e.target.matches(".sd[data-act=dayinfo]")) showTip(e.target); });
+  app.addEventListener("focusout", function (e) { if (e.target.matches && e.target.matches(".sd[data-act=dayinfo]") && !S.sel) hideTip(); });
+  window.addEventListener("scroll", function () { if (!tip.hidden) hideTip(); S.sel = null; }, { passive: true });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hideTip(); S.sel = null; if (S.menu) { S.menu = false; render(); } } });
+
+  app.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target, kind = f.getAttribute("data-form");
+    if (kind === "profile") {
+      var wasNew = !S.profile;
+      api("/api/me", "PUT", { name: f.name.value }).then(function (d) {
+        S.profile = d.profile; S.msg = wasNew ? "" : "Saved."; S.msgErr = false;
+        if (wasNew) go(); else render();
+      }, showErr);
+    } else if (kind === "event") {
+      var body = readEventForm(f), editing = S.route.name === "event";
+      S.saving = true; S.msg = ""; render();
+      var req = editing ? api("/api/event?id=" + encodeURIComponent(S.ev.event.id), "PUT", body) : api("/api/events", "POST", body);
+      req.then(function (d) {
+        S.saving = false;
+        var id = editing ? S.ev.event.id : d.id;
+        S.ev = null; nav("#/e/" + id);
+      }, function (err) {
+        S.saving = false; showErr(err);
+        // keep what they typed
+        var f2 = app.querySelector("form[data-form=event]");
+        if (f2) { f2.title.value = body.title; f2.description.value = body.description; f2.start_date.value = body.start_date; f2.end_date.value = body.end_date; f2.invitees.value = body.invitees; f2.open_join.checked = body.open_join; }
+      });
     }
   });
 
   app.addEventListener("input", function (e) {
     var el = e.target, f = el.getAttribute("data-field");
-    if (!f) return;
-    if (f === "name") draft.name = el.value;
-    else if (f === "email") draft.email = el.value;
-    else if (f === "note" || f === "date") {
-      var w = el.getAttribute("data-w"), m = el.getAttribute("data-m");
-      if (m) { if (draft.months[m]) draft.months[m][f] = el.value; }
-      else if (w) { if (draft.weeks[w]) draft.weeks[w][f] = el.value; }
-    }
+    if (f !== "date") return;
+    var w = el.getAttribute("data-w"), m = el.getAttribute("data-m");
+    if (m) { if (S.draft.months[m]) S.draft.months[m].date = el.value; }
+    else if (w && S.draft.weeks[w]) S.draft.weeks[w].date = el.value;
+    S.dirty = true;
   });
-
   app.addEventListener("change", function (e) {
     var el = e.target, f = el.getAttribute("data-field");
-    if (!f) return;
     if (f === "week") {
       var w = el.getAttribute("data-w"), v = el.value;
-      CAL.forEach(function (m) {
+      S.cal.forEach(function (m) {
         var M = monthSet(m.key);
         if (!M || !m.weeks.some(function (x) { return x.key === w; })) return;
         m.weeks.forEach(function (x) {
-          draft.weeks[x.key] = { s: M.s, note: "", date: M.s === "tentative" ? (M.date || "") : "",
-            days: M.s === "partial" ? ((M.days && M.days[x.key]) || []).slice() : [] };
+          S.draft.weeks[x.key] = { s: M.s, date: M.s === "tentative" ? (M.date || "") : "", days: M.s === "partial" ? ((M.days && M.days[x.key]) || []).slice() : [] };
         });
-        delete draft.months[m.key];
+        delete S.draft.months[m.key];
       });
-      var prevW = draft.weeks[w] || {};
-      if (!v) delete draft.weeks[w];
-      else draft.weeks[w] = { s: v, note: prevW.note || "", date: prevW.date || "", days: prevW.days || [] };
-      msg = ""; render();
+      var prev = S.draft.weeks[w] || {};
+      if (!v) delete S.draft.weeks[w];
+      else S.draft.weeks[w] = { s: v, date: prev.date || "", days: prev.days || [] };
+      S.dirty = true; S.msg = ""; render();
     } else if (f === "month") {
-      var mk = el.getAttribute("data-m"), mv = el.value, prevM = draft.months[mk] || {};
-      if (!mv) delete draft.months[mk];
+      var mk = el.getAttribute("data-m"), mv = el.value, pm = S.draft.months[mk] || {};
+      if (!mv) delete S.draft.months[mk];
       else {
-        draft.months[mk] = { s: mv, note: prevM.note || "", date: prevM.date || "", days: prevM.days || {} };
-        CAL.forEach(function (m) {
-          if (m.key === mk) m.weeks.forEach(function (w) { delete draft.weeks[w.key]; });
-        });
+        S.draft.months[mk] = { s: mv, date: pm.date || "", days: pm.days || {} };
+        S.cal.forEach(function (m) { if (m.key === mk) m.weeks.forEach(function (x) { delete S.draft.weeks[x.key]; }); });
       }
-      msg = ""; render();
+      S.dirty = true; S.msg = ""; render();
     }
   });
+  window.addEventListener("hashchange", function () {
+    if (S.dirty && S.route.name === "event" && S.route.tab === "respond") S.dirty = false;
+    go();
+  });
+  window.addEventListener("beforeunload", function (e) { if (S.dirty) { e.preventDefault(); e.returnValue = ""; } });
 
-  function frontendApi(pk) {
-    try { return atob(String(pk).split("_")[2]).replace(/\$$/, ""); } catch (e) { return ""; }
-  }
+  // ---------- boot ----------
+  function frontendApi(pk) { try { return atob(String(pk).split("_")[2]).replace(/\$$/, ""); } catch (e) { return ""; } }
   function addScript(src, pk) {
     return new Promise(function (resolve, reject) {
       var s = document.createElement("script");
-      s.async = true;
-      s.crossOrigin = "anonymous";
+      s.async = true; s.crossOrigin = "anonymous";
       if (pk) s.setAttribute("data-clerk-publishable-key", pk);
-      s.src = src;
-      s.onload = resolve;
+      s.src = src; s.onload = resolve;
       s.onerror = function () { reject(new Error("Could not load the sign-in service. Check your connection and reload.")); };
       document.head.appendChild(s);
     });
   }
-  // Per Clerk's JavaScript quickstart: load the UI bundle first, then clerk-js,
-  // then pass the UI constructor to Clerk.load().
+  // Per Clerk's JavaScript quickstart: UI bundle first, then clerk-js, then pass the UI constructor to load().
   function loadClerk(pk) {
     var host = frontendApi(pk);
     if (!host) return Promise.reject(new Error("The sign-in key looks wrong. Check CLERK_PUBLISHABLE_KEY in Vercel."));
@@ -519,28 +858,24 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
   }
 
   function boot() {
-    render();
+    S.route = parseRoute(); render();
     fetch("/api/config").then(function (r) { return r.json(); }).then(function (cfg) {
       if (!cfg.publishableKey) throw new Error("Sign-in isn't set up yet. Missing: " + ((cfg.missing || []).join(", ") || "CLERK_PUBLISHABLE_KEY") + ".");
       return loadClerk(cfg.publishableKey);
     }).then(function () {
-      return window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+      C = window.Clerk;
+      return C.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
     }).then(function () {
-      var C = window.Clerk;
-      if (!C.user) {
-        phase = "signin"; render();
-        C.mountSignIn(authBox);
-        C.addListener(function (e) { if (e && e.user && phase === "signin") location.reload(); });
-        return;
-      }
-      myEmail = (C.user.primaryEmailAddress && C.user.primaryEmailAddress.emailAddress) || "";
-      draft.name = C.user.fullName || C.user.firstName || "";
-      return refresh(true).then(function () { phase = "ready"; render(); });
-    }).catch(function (e) {
-      phase = "error"; phaseMsg = e && e.message ? e.message : String(e); render();
-    });
+      var was = !!C.user;
+      C.addListener(function (ev) { if (!!(ev && ev.user) !== was) location.reload(); });
+      if (!C.user) { S.phase = "ready"; render(); return; }
+      S.email = (C.user.primaryEmailAddress && C.user.primaryEmailAddress.emailAddress) || "";
+      return api("/api/me").then(function (d) {
+        S.profile = d.profile; S.suggestedName = d.suggestedName || C.user.fullName || "";
+        S.phase = "ready"; go();
+      });
+    }).catch(function (e) { S.phase = "error"; S.phaseMsg = e && e.message ? e.message : String(e); render(); });
   }
-
   boot();
 })();
 </script>
