@@ -497,19 +497,25 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
   function frontendApi(pk) {
     try { return atob(String(pk).split("_")[2]).replace(/\$$/, ""); } catch (e) { return ""; }
   }
-  function loadClerk(pk) {
+  function addScript(src, pk) {
     return new Promise(function (resolve, reject) {
-      var host = frontendApi(pk);
-      if (!host) return reject(new Error("The sign-in key looks wrong. Check CLERK_PUBLISHABLE_KEY in Vercel."));
       var s = document.createElement("script");
       s.async = true;
       s.crossOrigin = "anonymous";
-      s.setAttribute("data-clerk-publishable-key", pk);
-      s.src = "https://" + host + "/npm/@clerk/clerk-js@6/dist/clerk.browser.js";
+      if (pk) s.setAttribute("data-clerk-publishable-key", pk);
+      s.src = src;
       s.onload = resolve;
       s.onerror = function () { reject(new Error("Could not load the sign-in service. Check your connection and reload.")); };
       document.head.appendChild(s);
     });
+  }
+  // Per Clerk's JavaScript quickstart: load the UI bundle first, then clerk-js,
+  // then pass the UI constructor to Clerk.load().
+  function loadClerk(pk) {
+    var host = frontendApi(pk);
+    if (!host) return Promise.reject(new Error("The sign-in key looks wrong. Check CLERK_PUBLISHABLE_KEY in Vercel."));
+    return addScript("https://" + host + "/npm/@clerk/ui@1/dist/ui.browser.js")
+      .then(function () { return addScript("https://" + host + "/npm/@clerk/clerk-js@6/dist/clerk.browser.js", pk); });
   }
 
   function boot() {
@@ -518,7 +524,7 @@ button.link{background:none;border:none;padding:0;min-height:0;color:var(--accen
       if (!cfg.publishableKey) throw new Error("Sign-in isn't set up yet. Missing: " + ((cfg.missing || []).join(", ") || "CLERK_PUBLISHABLE_KEY") + ".");
       return loadClerk(cfg.publishableKey);
     }).then(function () {
-      return window.Clerk.load();
+      return window.Clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
     }).then(function () {
       var C = window.Clerk;
       if (!C.user) {
